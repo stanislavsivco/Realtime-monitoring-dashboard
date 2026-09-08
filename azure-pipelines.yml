@@ -1,0 +1,17 @@
+trigger:
+  - main
+
+variables:
+  - group: Railway-Var
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: |
+    npm i -g @railway/cli
+    
+    railway up --service backend --detach
+  displayName: 'Deploy Backend do Railway'
+  env:
+    RAILWAY_TOKEN: $(RAILWAY_TOKEN)
