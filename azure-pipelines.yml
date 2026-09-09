@@ -15,7 +15,7 @@ steps:
     git config --global user.email "azure-pipeline@dev.azure.com"
     git config --global user.name "Azure Pipeline"
     git remote add github https://x-access-token:$GH_TOKEN@github.com/stanislavsivco/realtime-monitoring-dashboard.git
-    git push --mirror github
+    git push github HEAD:refs/heads/main --force
   env:
     GH_TOKEN: $(GITHUB_TOKEN)
   displayName: 'Mirroring code for GitHub for Render'
