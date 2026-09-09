@@ -1,0 +1,18 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- checkout: self
+  persistCredentials: true
+
+- script: |
+    git config --global user.email "azure-pipeline@dev.azure.com"
+    git config --global user.name "Azure Pipeline"
+    git remote add github https://$(GITHUB_TOKEN)@github.com/stanislavsivco/realtime-monitoring-dashboard.git
+    git push --mirror github
+  displayName: 'Zrkadlenie kódu na GitHub pre Render'
