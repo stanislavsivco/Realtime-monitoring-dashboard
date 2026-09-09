@@ -9,6 +9,6 @@ import java.util.List;
 @Repository
 public interface MetricRepository extends JpaRepository<Metric, Long> {
 
-    // Vlastná metóda: Nájde všetky metriky pre konkrétne ID zariadenia
+
     List<Metric> findByDeviceId(Long deviceId);
 }
