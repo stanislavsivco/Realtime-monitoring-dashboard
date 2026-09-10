@@ -16,7 +16,7 @@ public class DeviceService {
 
     
     public List<Device> getAllDevices() {
-        return deviceRepository.findAll()čo da
+        return deviceRepository.findAll()
                 .stream()
                 .sorted((a, b) -> statusPriority(a.getStatus()) - statusPriority(b.getStatus()))
                 .toList();
