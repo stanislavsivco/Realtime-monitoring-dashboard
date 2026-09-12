@@ -1,16 +1,15 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     container_name: rmd-backend
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/supportticket
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/rmd
       - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=secret
+      - SPRING_DATASOURCE_PASSWORD=postgres
     depends_on:
       - db
 
@@ -20,9 +19,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: realtime-monitoring
+      POSTGRES_DB: rmd
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: postgres
     volumes:
       - pgdata:/var/lib/postgresql/data
 

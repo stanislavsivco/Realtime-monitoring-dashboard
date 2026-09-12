@@ -2,7 +2,7 @@ spring:
   application:
     name: backend
   datasource:
-    url: jdbc:postgresql://localhost:5432/supportticket
+    url: jdbc:postgresql://localhost:5432/rmd
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
