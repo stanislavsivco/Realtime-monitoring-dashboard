@@ -7,10 +7,12 @@ import java.util.Random;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
+import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -56,7 +58,15 @@ public class MetricService {
         }
     }
 
-    public List<Metric> getMetricsByDeviceId(Long deviceId) {
-        return metricRepository.findTop100ByDeviceIdOrderByTimestampAsc(deviceId);
+    public List<MetricDTO> getMetricsByDeviceId(Long deviceId) {
+    return metricRepository.findTop100ByDeviceIdOrderByTimestampAsc(deviceId)
+            .stream()
+            .map(metric -> MetricDTO.builder()
+                    .id(metric.getId())
+                    .deviceId(metric.getDevice().getId())
+                    .timestamp(metric.getTimestamp())
+                    .disk(metric.getDisk())
+                    .build())
+            .toList();
+        }
     }
-}

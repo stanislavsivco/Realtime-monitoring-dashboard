@@ -2,6 +2,7 @@ package com.realtime_monitoring_dashboard.backend.controller;
 
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.service.MetricService;
+import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import lombok.RequiredArgsConstructor;
 
 import org.apache.catalina.connector.Response;
@@ -20,7 +21,7 @@ public class MetricController {
     private final MetricService metricService;
 
     @GetMapping("/{id}/metrics")
-    public ResponseEntity<List<Metric>> getMetricsByDeviceId (@PathVariable Long id) {
+    public ResponseEntity<List<MetricDTO>> getMetricsByDeviceId (@PathVariable Long id) {
         return ResponseEntity.ok(metricService.getMetricsByDeviceId(id));
     }
 
