@@ -10,5 +10,6 @@ import java.util.List;
 public interface MetricRepository extends JpaRepository<Metric, Long> {
 
 
-    List<Metric> findByDeviceId(Long deviceId);
+    List<Metric> findTop100ByDeviceIdOrderByTimestampAsc(Long deviceId);
+
 }
