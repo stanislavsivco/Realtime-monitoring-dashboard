@@ -12,7 +12,6 @@ import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
-import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 
 import lombok.RequiredArgsConstructor;
 

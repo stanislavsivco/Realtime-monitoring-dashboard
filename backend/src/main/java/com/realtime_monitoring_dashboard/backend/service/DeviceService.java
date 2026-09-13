@@ -1,5 +1,6 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
+import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
@@ -14,21 +15,32 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
 
-    
-    public List<Device> getAllDevices() {
+    public List<DeviceDTO> getAllDevices() {
         return deviceRepository.findAll()
                 .stream()
                 .sorted((a, b) -> statusPriority(a.getStatus()) - statusPriority(b.getStatus()))
+                .map(device -> DeviceDTO.builder()
+                        .id(device.getId())
+                        .name(device.getName())
+                        .type(device.getType())
+                        .location(device.getLocation())
+                        .status(device.getStatus())
+                        .build())
                 .toList();
     }
 
-    
-    public Device getDeviceById(Long id) {
-        return deviceRepository.findById(id)
+    public DeviceDTO getDeviceById(Long id) {
+        Device device = deviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Device not found"));
+        return DeviceDTO.builder()
+                .id(device.getId())
+                .name(device.getName())
+                .type(device.getType())
+                .location(device.getLocation())
+                .status(device.getStatus())
+                .build();
     }
 
-    
     private int statusPriority(DeviceStatus status) {
         return switch (status) {
             case CRITICAL -> 0;
