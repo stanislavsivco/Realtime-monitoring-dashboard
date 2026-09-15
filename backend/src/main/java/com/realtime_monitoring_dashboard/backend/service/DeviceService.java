@@ -1,5 +1,6 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
+import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
@@ -48,5 +49,50 @@ public class DeviceService {
             case WARNING -> 2;
             case ONLINE -> 3;
         };
+    }
+
+    public DeviceDTO createDevice(CreateDeviceRequestDTO request) {
+        Device device = Device.builder()
+            .name(request.getName())
+            .type(request.getType())
+            .location(request.getLocation())
+            .status(request.getStatus())
+            .build();
+
+    Device saved = deviceRepository.save(device);
+
+    return DeviceDTO.builder()
+            .id(saved.getId())
+            .name(saved.getName())
+            .type(saved.getType())
+            .location(saved.getLocation())
+            .status(saved.getStatus())
+            .build();
+
+
+}
+
+    public DeviceDTO updateDevice(Long id, CreateDeviceRequestDTO request) {
+        Device device = deviceRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Device not found"));
+
+        device.setName(request.getName());
+        device.setType(request.getType());
+        device.setLocation(request.getLocation());
+        device.setStatus(request.getStatus());
+
+        Device saved = deviceRepository.save(device);
+
+        return DeviceDTO.builder()
+                .id(saved.getId())
+                .name(saved.getName())
+                .type(saved.getType())
+                .location(saved.getLocation())
+                .status(saved.getStatus())
+                .build();
+}
+
+    public void deleteDevice(Long id) {
+        deviceRepository.deleteById(id);
     }
 }
