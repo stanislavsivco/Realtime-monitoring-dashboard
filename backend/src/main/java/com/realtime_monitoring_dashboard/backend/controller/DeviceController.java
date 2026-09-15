@@ -6,7 +6,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
-import com.realtime_monitoring_dashboard.backend.model.Device;
+
+import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import java.util.List;
 
 import com.realtime_monitoring_dashboard.backend.service.DeviceService;
@@ -23,12 +24,12 @@ public class DeviceController {
     private final DeviceService deviceService;
 
     @GetMapping
-    public ResponseEntity<List<Device>> getAllDevices() {
+    public ResponseEntity<List<DeviceDTO>> getAllDevices() {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Device> getDeviceByID(@PathVariable Long id) {
+    public ResponseEntity<DeviceDTO> getDeviceByID(@PathVariable Long id) {
         return ResponseEntity.ok(deviceService.getDeviceById(id));
     }
 
