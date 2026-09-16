@@ -47,9 +47,13 @@ public class MetricService {
             double randomDisk = 10.0 + (85.0 * random.nextDouble());
             double roundedDisk = Math.round(randomDisk * 100.0) / 100.0;
 
+            double randomRam = 20.0 + (70.0 * random.nextDouble());
+            double roundedRam = Math.round(randomRam * 100.0) / 100.0;
+
             Metric metric = new Metric();
             metric.setDevice(device);
             metric.setDisk(roundedDisk);
+            metric.setRam(roundedRam);
             metric.setTimestamp(LocalDateTime.now());
 
             metricRepository.save(metric);
@@ -65,6 +69,7 @@ public class MetricService {
                     .deviceId(metric.getDevice().getId())
                     .timestamp(metric.getTimestamp())
                     .disk(metric.getDisk())
+                    .ram(metric.getRam())
                     .build())
             .toList();
         }

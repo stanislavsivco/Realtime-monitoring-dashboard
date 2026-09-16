@@ -16,4 +16,5 @@ public class MetricDTO {
     private Long deviceId;
     private LocalDateTime timestamp;
     private Double disk;
+    private Double ram;
 }

@@ -38,4 +38,7 @@ public class Metric {
 
     @Column(nullable = false)
     private Double disk;
+
+    @Column(nullable = false)
+    private Double ram;
 }
