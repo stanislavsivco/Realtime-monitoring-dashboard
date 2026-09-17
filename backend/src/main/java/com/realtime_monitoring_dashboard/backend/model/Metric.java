@@ -38,4 +38,7 @@ public class Metric {
 
     @Column(nullable = false)
     private Double disk;
+
+    @Column(name = "latency_ms")
+    private Integer latencyMs;
 }
