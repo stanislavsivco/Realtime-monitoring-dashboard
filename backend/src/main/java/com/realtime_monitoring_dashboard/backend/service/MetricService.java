@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.model.Device;
+import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
@@ -47,25 +48,62 @@ public class MetricService {
             double randomDisk = 10.0 + (85.0 * random.nextDouble());
             double roundedDisk = Math.round(randomDisk * 100.0) / 100.0;
 
+            double randomRam = 20.0 + (75.0 * random.nextDouble());
+            double roundedRam = Math.round(randomRam * 100.0) / 100.0;
+
+            int randomLatency = 5 + random.nextInt(145);
+
             Metric metric = new Metric();
             metric.setDevice(device);
             metric.setDisk(roundedDisk);
+            metric.setRam(roundedRam);
+            metric.setLatencyMs(randomLatency);
             metric.setTimestamp(LocalDateTime.now());
 
+            DeviceStatus newStatus = calculateStatus(roundedDisk, roundedRam, randomLatency);
+            device.setStatus(newStatus);
+            deviceRepository.save(device);
+
             metricRepository.save(metric);
-            System.out.println("Metric for " + device.getName() + ": " + roundedDisk + "%");
+            System.out.println("Metric for " + device.getName() + ": Disk " + roundedDisk + "%, RAM " + roundedRam + "%, Latency " + randomLatency + " ms");
         }
     }
 
     public List<MetricDTO> getMetricsByDeviceId(Long deviceId) {
-    return metricRepository.findTop100ByDeviceIdOrderByTimestampAsc(deviceId)
-            .stream()
-            .map(metric -> MetricDTO.builder()
-                    .id(metric.getId())
-                    .deviceId(metric.getDevice().getId())
-                    .timestamp(metric.getTimestamp())
-                    .disk(metric.getDisk())
-                    .build())
-            .toList();
+        return metricRepository.findTop100ByDeviceIdOrderByTimestampAsc(deviceId)
+                .stream()
+                .map(metric -> MetricDTO.builder()
+                        .id(metric.getId())
+                        .deviceId(metric.getDevice().getId())
+                        .timestamp(metric.getTimestamp())
+                        .disk(metric.getDisk())
+                        .ram(metric.getRam())
+                        .latencyMs(metric.getLatencyMs())
+                        .build())
+                .toList();
+    }
+
+    public MetricDTO getLatestMetricByDeviceId(Long deviceId) {
+        Metric metric = metricRepository.findTopByDeviceIdOrderByTimestampDesc(deviceId)
+                .orElseThrow(() -> new RuntimeException("No metrics found for device " + deviceId));
+
+        return MetricDTO.builder()
+                .id(metric.getId())
+                .deviceId(metric.getDevice().getId())
+                .timestamp(metric.getTimestamp())
+                .disk(metric.getDisk())
+                .ram(metric.getRam())
+                .latencyMs(metric.getLatencyMs())
+                .build();
+    }
+
+    private DeviceStatus calculateStatus(double disk, double ram, int latencyMs) {
+        if (disk >= 90.0 || ram >= 90.0 || latencyMs >= 200) {
+            return DeviceStatus.CRITICAL;
+        } else if (disk >= 75.0 || ram >= 80.0 || latencyMs >= 100) {
+            return DeviceStatus.WARNING;
+        } else {
+            return DeviceStatus.ONLINE;
         }
     }
+}

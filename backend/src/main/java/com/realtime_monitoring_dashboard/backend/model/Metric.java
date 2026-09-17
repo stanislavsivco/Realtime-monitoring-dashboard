@@ -28,7 +28,6 @@ public class Metric {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_id", nullable = false)
     private Device device;
@@ -38,4 +37,9 @@ public class Metric {
 
     @Column(nullable = false)
     private Double disk;
+
+    private Double ram;
+
+    @Column(name = "latency_ms")
+    private Integer latencyMs;
 }
