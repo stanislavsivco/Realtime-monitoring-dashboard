@@ -42,4 +42,10 @@ public class Metric {
 
     @Column(name = "latency_ms")
     private Integer latencyMs;
+
+    @Column(name = "network_in_mbps")
+    private Double networkInMbps;
+
+    @Column(name = "network_out_mbps")
+    private Double networkOutMbps;
 }

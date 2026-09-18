@@ -17,4 +17,6 @@ public class MetricDTO {
     private Double disk;
     private Double ram;
     private Integer latencyMs;
+    private Double networkInMbps;
+    private Double networkOutMbps;
 }
