@@ -13,6 +13,7 @@ import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
+import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +23,7 @@ public class MetricService {
 
     private final MetricRepository metricRepository;
     private final DeviceRepository deviceRepository;
+    private final AlertService alertService;
     private final Random random = new Random();
 
     public List<Metric> getAllMetrics() {
@@ -61,6 +63,16 @@ public class MetricService {
             metric.setTimestamp(LocalDateTime.now());
 
             DeviceStatus newStatus = calculateStatus(roundedDisk, roundedRam, randomLatency);
+
+            if (newStatus == DeviceStatus.CRITICAL) {
+                alertService.createAlert(device, AlertSeverity.CRITICAL, 
+                    String.format("Critical load on %s: Disk %.1f%%, RAM %.1f%%, Latency %d ms", 
+                        device.getName(), roundedDisk, roundedRam, randomLatency));
+            } else if (newStatus == DeviceStatus.WARNING) {
+                alertService.createAlert(device, AlertSeverity.WARNING, 
+                    String.format("Warning load on %s: Disk %.1f%%, RAM %.1f%%, Latency %d ms", 
+                        device.getName(), roundedDisk, roundedRam, randomLatency));
+}
             device.setStatus(newStatus);
             deviceRepository.save(device);
 
