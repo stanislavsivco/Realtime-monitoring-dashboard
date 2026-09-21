@@ -8,6 +8,7 @@ import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final MetricRepository metricRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public List<DeviceDTO> getAllDevices() {
         return deviceRepository.findAll()
@@ -46,7 +48,12 @@ public class DeviceService {
                 .build();
 
         Device saved = deviceRepository.save(device);
-        return mapToDTO(saved);
+        DeviceDTO dto = mapToDTO(saved);
+
+        
+        messagingTemplate.convertAndSend("/topic/devices", dto);
+
+        return dto;
     }
 
     public DeviceDTO updateDevice(Long id, CreateDeviceRequestDTO request) {
@@ -59,26 +66,30 @@ public class DeviceService {
         device.setStatus(request.getStatus());
 
         Device saved = deviceRepository.save(device);
-        return mapToDTO(saved);
+        DeviceDTO dto = mapToDTO(saved);
+
+        
+        messagingTemplate.convertAndSend("/topic/devices", dto);
+
+        return dto;
     }
 
     public void deleteDevice(Long id) {
         deviceRepository.deleteById(id);
-    }
 
-    
+        
+        messagingTemplate.convertAndSend("/topic/devices/delete", id);
+    }
 
     private DeviceStatus calculateStatus(Long deviceId) {
         Optional<Metric> latestMetric = metricRepository.findFirstByDeviceIdOrderByTimestampDesc(deviceId);
 
-        
         if (latestMetric.isEmpty() || latestMetric.get().getTimestamp().isBefore(LocalDateTime.now().minusSeconds(OFFLINE_THRESHOLD_SECONDS))) {
             return DeviceStatus.OFFLINE;
         }
 
         Metric metric = latestMetric.get();
 
-        
         if (isCritical(metric)) {
             return DeviceStatus.CRITICAL;
         }

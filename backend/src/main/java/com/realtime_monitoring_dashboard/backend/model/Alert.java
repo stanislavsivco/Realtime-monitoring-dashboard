@@ -31,8 +31,9 @@ public class Alert {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
-    @Column(nullable = false)
-    private boolean acknowledged;
+    @Column(name = "acknowledged", nullable = false)
+    @Builder.Default
+    private boolean acknowledged = false;
 
     @Column(nullable = false)
     private boolean resolved;
