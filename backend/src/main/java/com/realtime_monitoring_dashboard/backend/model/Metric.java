@@ -38,7 +38,11 @@ public class Metric {
     @Column(nullable = false)
     private Double disk;
 
+    @Column(nullable = false)
     private Double ram;
+
+    @Column(nullable = false)
+    private Double cpu;
 
     @Column(name = "latency_ms")
     private Integer latencyMs;
@@ -48,4 +52,5 @@ public class Metric {
 
     @Column(name = "network_out_mbps")
     private Double networkOutMbps;
+
 }

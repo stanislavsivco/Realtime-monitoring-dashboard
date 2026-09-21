@@ -35,6 +35,13 @@ public class AlertService {
                 .toList();
     }
 
+    public AlertDTO acknowledgeAlert(Long alertId) {
+        Alert alert = alertRepository.findById(alertId)
+                .orElseThrow(() -> new RuntimeException("Alert not found: " + alertId));
+        alert.setAcknowledged(true);
+        return mapToDTO(alertRepository.save(alert));
+    }
+
     public AlertDTO resolveAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new RuntimeException("Alert not found: " + alertId));
@@ -50,6 +57,7 @@ public class AlertService {
                 .severity(alert.getSeverity())
                 .message(alert.getMessage())
                 .timestamp(alert.getTimestamp())
+                .acknowledged(alert.isAcknowledged())
                 .resolved(alert.isResolved())
                 .build();
     }

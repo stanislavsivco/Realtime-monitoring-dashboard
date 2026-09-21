@@ -21,6 +21,11 @@ public class AlertController {
         return ResponseEntity.ok(alertService.getActiveAlerts());
     }
 
+    @PatchMapping("/{id}/acknowledge")
+    public ResponseEntity<AlertDTO> acknowledgeAlert(@PathVariable Long id) {
+        return ResponseEntity.ok(alertService.acknowledgeAlert(id));
+    }
+
     @PatchMapping("/{id}/resolve")
     public ResponseEntity<AlertDTO> resolveAlert(@PathVariable Long id) {
         return ResponseEntity.ok(alertService.resolveAlert(id));

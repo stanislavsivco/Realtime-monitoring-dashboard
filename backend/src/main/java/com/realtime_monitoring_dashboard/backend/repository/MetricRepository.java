@@ -11,8 +11,10 @@ import com.realtime_monitoring_dashboard.backend.model.Metric;
 @Repository
 public interface MetricRepository extends JpaRepository<Metric, Long> {
 
-    List<Metric> findTop100ByDeviceIdOrderByTimestampAsc(Long deviceId);
+    List<Metric> findTop120ByDeviceIdOrderByTimestampAsc(Long deviceId);
 
     Optional<Metric> findTopByDeviceIdOrderByTimestampDesc(Long deviceId);
+
+    Optional<Metric> findFirstByDeviceIdOrderByTimestampDesc(Long deviceId);
 
 }
