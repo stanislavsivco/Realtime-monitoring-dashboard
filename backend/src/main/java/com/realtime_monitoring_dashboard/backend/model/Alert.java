@@ -32,5 +32,8 @@ public class Alert {
     private LocalDateTime timestamp;
 
     @Column(nullable = false)
+    private boolean acknowledged;
+
+    @Column(nullable = false)
     private boolean resolved;
 }

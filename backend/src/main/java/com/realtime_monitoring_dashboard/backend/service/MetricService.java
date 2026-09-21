@@ -87,7 +87,7 @@ public class MetricService {
     }
 
     public List<MetricDTO> getMetricsByDeviceId(Long deviceId) {
-        return metricRepository.findTop100ByDeviceIdOrderByTimestampAsc(deviceId)
+        return metricRepository.findTop120ByDeviceIdOrderByTimestampAsc(deviceId)
                 .stream()
                 .map(metric -> MetricDTO.builder()
                         .id(metric.getId())

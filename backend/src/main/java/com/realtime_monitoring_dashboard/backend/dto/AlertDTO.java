@@ -15,5 +15,6 @@ public class AlertDTO {
     private AlertSeverity severity;
     private String message;
     private LocalDateTime timestamp;
+    private boolean acknowledged;
     private boolean resolved;
 }
