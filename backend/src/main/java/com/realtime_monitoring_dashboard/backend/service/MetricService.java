@@ -4,16 +4,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
+import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
-import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +25,7 @@ public class MetricService {
     private final MetricRepository metricRepository;
     private final DeviceRepository deviceRepository;
     private final AlertService alertService;
+    private final SimpMessagingTemplate messagingTemplate;
     private final Random random = new Random();
 
     public List<Metric> getAllMetrics() {
@@ -77,11 +79,17 @@ public class MetricService {
                 alertService.createAlert(device, AlertSeverity.WARNING, 
                     String.format("Warning load on %s: Disk %.1f%%, RAM %.1f%%, Latency %d ms", 
                         device.getName(), roundedDisk, roundedRam, randomLatency));
-}
+            }
+
             device.setStatus(newStatus);
             deviceRepository.save(device);
 
-            metricRepository.save(metric);
+            Metric savedMetric = metricRepository.save(metric);
+            
+            
+            MetricDTO metricDTO = mapToDTO(savedMetric);
+            messagingTemplate.convertAndSend("/topic/metrics", metricDTO);
+
             System.out.println("Metric for " + device.getName() + ": Disk " + roundedDisk + "%, RAM " + roundedRam + "%, Latency " + randomLatency + " ms");
         }
     }
@@ -89,16 +97,7 @@ public class MetricService {
     public List<MetricDTO> getMetricsByDeviceId(Long deviceId) {
         return metricRepository.findTop120ByDeviceIdOrderByTimestampAsc(deviceId)
                 .stream()
-                .map(metric -> MetricDTO.builder()
-                        .id(metric.getId())
-                        .deviceId(metric.getDevice().getId())
-                        .timestamp(metric.getTimestamp())
-                        .disk(metric.getDisk())
-                        .ram(metric.getRam())
-                        .latencyMs(metric.getLatencyMs())
-                        .networkInMbps(metric.getNetworkInMbps())
-                        .networkOutMbps(metric.getNetworkOutMbps())
-                        .build())
+                .map(this::mapToDTO)
                 .toList();
     }
 
@@ -106,16 +105,7 @@ public class MetricService {
         Metric metric = metricRepository.findTopByDeviceIdOrderByTimestampDesc(deviceId)
                 .orElseThrow(() -> new RuntimeException("No metrics found for device " + deviceId));
 
-        return MetricDTO.builder()
-                .id(metric.getId())
-                .deviceId(metric.getDevice().getId())
-                .timestamp(metric.getTimestamp())
-                .disk(metric.getDisk())
-                .ram(metric.getRam())
-                .latencyMs(metric.getLatencyMs())
-                .networkInMbps(metric.getNetworkInMbps())
-                .networkOutMbps(metric.getNetworkOutMbps())
-                .build();
+        return mapToDTO(metric);
     }
 
     private DeviceStatus calculateStatus(double disk, double ram, int latencyMs) {
@@ -126,5 +116,18 @@ public class MetricService {
         } else {
             return DeviceStatus.ONLINE;
         }
+    }
+
+    private MetricDTO mapToDTO(Metric metric) {
+        return MetricDTO.builder()
+                .id(metric.getId())
+                .deviceId(metric.getDevice().getId())
+                .timestamp(metric.getTimestamp())
+                .disk(metric.getDisk())
+                .ram(metric.getRam())
+                .latencyMs(metric.getLatencyMs())
+                .networkInMbps(metric.getNetworkInMbps())
+                .networkOutMbps(metric.getNetworkOutMbps())
+                .build();
     }
 }

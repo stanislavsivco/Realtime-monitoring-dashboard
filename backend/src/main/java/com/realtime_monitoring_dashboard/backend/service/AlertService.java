@@ -6,6 +6,8 @@ import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -39,13 +41,22 @@ public class AlertService {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new RuntimeException("Alert not found: " + alertId));
         alert.setAcknowledged(true);
-        return mapToDTO(alertRepository.save(alert));
+        Alert savedAlert = alertRepository.save(alert);
+        AlertDTO dto = mapToDTO(savedAlert);
+
+        messagingTemplate.convertAndSend("/topic/alerts", dto);
+
+        return dto;
     }
 
     public AlertDTO resolveAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new RuntimeException("Alert not found: " + alertId));
         alert.setResolved(true);
+        Alert savedAlert = alertRepository.save(alert);
+        AlertDTO dto = mapToDTO(savedAlert);
+
+        messagingTemplate.convertAndSend("/topic/alerts", dto);
         return mapToDTO(alertRepository.save(alert));
     }
 
@@ -61,4 +72,8 @@ public class AlertService {
                 .resolved(alert.isResolved())
                 .build();
     }
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    
 }
