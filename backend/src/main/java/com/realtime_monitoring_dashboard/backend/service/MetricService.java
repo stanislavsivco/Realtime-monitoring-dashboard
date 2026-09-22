@@ -55,6 +55,9 @@ public class MetricService {
             double randomRam = 20.0 + (75.0 * random.nextDouble());
             double roundedRam = Math.round(randomRam * 100.0) / 100.0;
 
+            double randomCpu = 10.0 + (85.0 * random.nextDouble());
+            double roundedCpu = Math.round(randomCpu * 100.0) / 100.0;
+
             int randomLatency = 5 + random.nextInt(145);
 
             double randomNetworkIn = Math.round((random.nextDouble() * 500.0) * 100.0) / 100.0;
@@ -64,6 +67,7 @@ public class MetricService {
             metric.setDevice(device);
             metric.setDisk(roundedDisk);
             metric.setRam(roundedRam);
+            metric.setCpu(roundedCpu);
             metric.setLatencyMs(randomLatency);
             metric.setNetworkInMbps(randomNetworkIn);
             metric.setNetworkOutMbps(randomNetworkOut);
@@ -125,6 +129,7 @@ public class MetricService {
                 .timestamp(metric.getTimestamp())
                 .disk(metric.getDisk())
                 .ram(metric.getRam())
+                .cpu(metric.getCpu())
                 .latencyMs(metric.getLatencyMs())
                 .networkInMbps(metric.getNetworkInMbps())
                 .networkOutMbps(metric.getNetworkOutMbps())
