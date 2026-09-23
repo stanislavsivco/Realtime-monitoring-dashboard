@@ -51,41 +51,37 @@ public class MetricService {
         }
 
         for (Device device : devices) {
-            double randomDisk = 10.0 + (85.0 * random.nextDouble());
-            double roundedDisk = Math.round(randomDisk * 100.0) / 100.0;
+        double roundedDisk = round2(10.0 + (85.0 * random.nextDouble()));
+        double roundedRam = round2(20.0 + (75.0 * random.nextDouble()));
+        double roundedCpu = round2(10.0 + (85.0 * random.nextDouble()));
+        int randomLatency = 5 + random.nextInt(145);
+        double randomNetworkIn = round2(random.nextDouble() * 500.0);
+        double randomNetworkOut = round2(random.nextDouble() * 500.0);
 
-            double randomRam = 20.0 + (75.0 * random.nextDouble());
-            double roundedRam = Math.round(randomRam * 100.0) / 100.0;
+            Metric metric = Metric.builder()
+                .device(device)
+                .disk(roundedDisk)
+                .ram(roundedRam)
+                .cpu(roundedCpu)
+                .latencyMs(randomLatency)
+                .networkInMbps(randomNetworkIn)
+                .networkOutMbps(randomNetworkOut)
+                .timestamp(LocalDateTime.now())
+                .build();
 
-            double randomCpu = 10.0 + (85.0 * random.nextDouble());
-            double roundedCpu = Math.round(randomCpu * 100.0) / 100.0;
+            DeviceStatus newStatus = calculateStatus(metric);
 
-            int randomLatency = 5 + random.nextInt(145);
-
-            double randomNetworkIn = Math.round((random.nextDouble() * 500.0) * 100.0) / 100.0;
-            double randomNetworkOut = Math.round((random.nextDouble() * 500.0) * 100.0) / 100.0;
-
-            Metric metric = new Metric();
-            metric.setDevice(device);
-            metric.setDisk(roundedDisk);
-            metric.setRam(roundedRam);
-            metric.setCpu(roundedCpu);
-            metric.setLatencyMs(randomLatency);
-            metric.setNetworkInMbps(randomNetworkIn);
-            metric.setNetworkOutMbps(randomNetworkOut);
-            metric.setTimestamp(LocalDateTime.now());
-
-            DeviceStatus newStatus = calculateStatus(roundedDisk, roundedRam, randomLatency);
-
-            if (newStatus == DeviceStatus.CRITICAL) {
-                alertService.createAlert(device, AlertSeverity.CRITICAL, 
-                    String.format("Critical load on %s: Disk %.1f%%, RAM %.1f%%, Latency %d ms", 
-                        device.getName(), roundedDisk, roundedRam, randomLatency));
-            } else if (newStatus == DeviceStatus.WARNING) {
-                alertService.createAlert(device, AlertSeverity.WARNING, 
-                    String.format("Warning load on %s: Disk %.1f%%, RAM %.1f%%, Latency %d ms", 
-                        device.getName(), roundedDisk, roundedRam, randomLatency));
-            }
+           if (newStatus == DeviceStatus.CRITICAL) {
+            alertService.createAlert(device, AlertSeverity.CRITICAL, 
+                String.format("Critical load on %s: CPU %.1f%%, RAM %.1f%%, Disk %.1f%%, Latency %d ms", 
+                    device.getName(), roundedCpu, roundedRam, roundedDisk, randomLatency));
+        } else if (newStatus == DeviceStatus.WARNING) {
+            alertService.createAlert(device, AlertSeverity.WARNING, 
+                String.format("Warning load on %s: CPU %.1f%%, RAM %.1f%%, Disk %.1f%%, Latency %d ms", 
+                    device.getName(), roundedCpu, roundedRam, roundedDisk, randomLatency));
+        } else {
+            alertService.resolveActiveAlertsForDevice(device);
+        }
 
             device.setStatus(newStatus);
             deviceRepository.save(device);
@@ -114,15 +110,37 @@ public class MetricService {
         return mapToDTO(metric);
     }
 
-    private DeviceStatus calculateStatus(double disk, double ram, int latencyMs) {
-        if (disk >= 90.0 || ram >= 90.0 || latencyMs >= 200) {
-            return DeviceStatus.CRITICAL;
-        } else if (disk >= 75.0 || ram >= 80.0 || latencyMs >= 100) {
-            return DeviceStatus.WARNING;
-        } else {
-            return DeviceStatus.ONLINE;
-        }
+    private DeviceStatus calculateStatus(Metric metric) {
+    if (isCritical(metric)) {
+        return DeviceStatus.CRITICAL;
+    } else if (isWarning(metric)) {
+        return DeviceStatus.WARNING;
+    } else {
+        return DeviceStatus.ONLINE;
     }
+}
+
+private boolean isCritical(Metric metric) {
+    return (metric.getCpu() != null && metric.getCpu() > 90.0)
+        || (metric.getRam() != null && metric.getRam() > 90.0)
+        || (metric.getDisk() != null && metric.getDisk() > 90.0)
+        || (metric.getLatencyMs() != null && metric.getLatencyMs() > 500)
+        || (metric.getNetworkInMbps() != null && metric.getNetworkInMbps() > 950.0)
+        || (metric.getNetworkOutMbps() != null && metric.getNetworkOutMbps() > 950.0);
+}
+
+private boolean isWarning(Metric metric) {
+    return (metric.getCpu() != null && metric.getCpu() > 75.0)
+        || (metric.getRam() != null && metric.getRam() > 75.0)
+        || (metric.getDisk() != null && metric.getDisk() > 75.0)
+        || (metric.getLatencyMs() != null && metric.getLatencyMs() > 200)
+        || (metric.getNetworkInMbps() != null && metric.getNetworkInMbps() > 800.0)
+        || (metric.getNetworkOutMbps() != null && metric.getNetworkOutMbps() > 800.0);
+}
+
+private double round2(double value) {
+    return Math.round(value * 100.0) / 100.0;
+}
 
     private MetricDTO mapToDTO(Metric metric) {
         return MetricDTO.builder()
