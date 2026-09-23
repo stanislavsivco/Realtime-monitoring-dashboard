@@ -1,17 +1,19 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.realtime_monitoring_dashboard.backend.dto.AlertDTO;
 import com.realtime_monitoring_dashboard.backend.model.Alert;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
+
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -57,7 +59,7 @@ public class AlertService {
         AlertDTO dto = mapToDTO(savedAlert);
 
         messagingTemplate.convertAndSend("/topic/alerts", dto);
-        return mapToDTO(alertRepository.save(alert));
+        return dto;
     }
 
     private AlertDTO mapToDTO(Alert alert) {
@@ -74,6 +76,24 @@ public class AlertService {
     }
 
     private final SimpMessagingTemplate messagingTemplate;
+
+    @Transactional
+public void resolveActiveAlertsForDevice(Device device) {
+    List<Alert> activeAlerts = alertRepository.findByDeviceIdAndResolvedFalse(device.getId());
+
+    if (activeAlerts.isEmpty()) {
+        return;
+    }
+
+    for (Alert alert : activeAlerts) {
+        alert.setResolved(true);
+        Alert savedAlert = alertRepository.save(alert);
+        AlertDTO dto = mapToDTO(savedAlert);
+
+        
+        messagingTemplate.convertAndSend("/topic/alerts", dto);
+    }
+}
 
     
 }
