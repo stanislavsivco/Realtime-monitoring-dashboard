@@ -16,6 +16,7 @@ public class MetricDTO {
     private LocalDateTime timestamp;
     private Double disk;
     private Double ram;
+    private Double cpu;
     private Integer latencyMs;
     private Double networkInMbps;
     private Double networkOutMbps;
