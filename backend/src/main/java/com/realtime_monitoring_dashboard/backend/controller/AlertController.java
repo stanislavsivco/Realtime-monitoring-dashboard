@@ -1,18 +1,21 @@
 package com.realtime_monitoring_dashboard.backend.controller;
 
 import com.realtime_monitoring_dashboard.backend.dto.AlertDTO;
+import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.service.AlertService;
-import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/alerts")
@@ -24,18 +27,27 @@ public class AlertController {
 
     private final AlertService alertService;
 
-    @Operation(summary = "List of active alerts")
-    @ApiResponse(responseCode = "200", description = "List successfully returned")
+    @Operation(summary = "Get paginated and filtered list of alerts")
+    @ApiResponse(responseCode = "200", description = "Page of alerts successfully returned")
     @GetMapping
-    public ResponseEntity<List<AlertDTO>> getActiveAlerts() {
-        return ResponseEntity.ok(alertService.getActiveAlerts());
+    public ResponseEntity<Page<AlertDTO>> getAlerts(
+            @Parameter(description = "Filter by resolved status (true/false)")
+            @RequestParam(required = false) Boolean resolved,
+
+            @Parameter(description = "Filter by alert severity (INFO, WARNING, CRITICAL)")
+            @RequestParam(required = false) AlertSeverity severity,
+
+            @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        return ResponseEntity.ok(alertService.getAlertsPaged(resolved, severity, pageable));
     }
 
     @Operation(summary = "Acknowledged alerts")
     @ApiResponse(responseCode = "200", description = "Alert acknowledged")
     @ApiResponse(responseCode = "404", description = "Alert with this ID does not exist")
     @PatchMapping("/{id}/acknowledge")
-    public ResponseEntity<AlertDTO> acknowledgeAlert(@Parameter(description = "Device ID")@PathVariable @Positive Long id) {
+    public ResponseEntity<AlertDTO> acknowledgeAlert(
+            @Parameter(description = "Alert ID") @PathVariable @Positive Long id) {
         return ResponseEntity.ok(alertService.acknowledgeAlert(id));
     }
 
@@ -43,7 +55,8 @@ public class AlertController {
     @ApiResponse(responseCode = "200", description = "Alert resolved")
     @ApiResponse(responseCode = "404", description = "Alert with this ID does not exist")
     @PatchMapping("/{id}/resolve")
-    public ResponseEntity<AlertDTO> resolveAlert(@Parameter(description = "Device ID")@PathVariable @Positive Long id) {
+    public ResponseEntity<AlertDTO> resolveAlert(
+            @Parameter(description = "Alert ID") @PathVariable @Positive Long id) {
         return ResponseEntity.ok(alertService.resolveAlert(id));
     }
 }
