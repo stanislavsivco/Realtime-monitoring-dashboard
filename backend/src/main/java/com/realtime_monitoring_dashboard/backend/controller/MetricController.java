@@ -1,13 +1,7 @@
 package com.realtime_monitoring_dashboard.backend.controller;
 
-import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
-import com.realtime_monitoring_dashboard.backend.service.MetricService;
-import lombok.RequiredArgsConstructor;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Positive;
+import java.time.LocalDateTime;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -15,9 +9,23 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
+import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
+import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
+import com.realtime_monitoring_dashboard.backend.service.MetricService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 
 @RestController 
 @RequestMapping("/api/devices")
@@ -48,4 +56,13 @@ public class MetricController {
     public ResponseEntity<MetricDTO> getLatestMetric(@Parameter(description = "Device ID")@PathVariable @Positive Long deviceId) {
         return ResponseEntity.ok(metricService.getLatestMetricByDeviceId(deviceId));
     }
+
+    @GetMapping("/{id}/analytics")
+    public ResponseEntity<MetricSummaryDTO> getDeviceAnalytics(
+        @PathVariable Long id,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+
+    return ResponseEntity.ok(metricService.getMetricSummary(id, startDate, endDate));
+}
 }
