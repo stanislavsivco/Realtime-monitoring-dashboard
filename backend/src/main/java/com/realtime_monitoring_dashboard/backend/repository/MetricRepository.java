@@ -2,6 +2,7 @@ package com.realtime_monitoring_dashboard.backend.repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,4 +22,5 @@ public interface MetricRepository extends JpaRepository<Metric, Long> {
 
     Page<Metric> findByDeviceId(Long deviceId, Pageable pageable);
 
+    Page<Metric> findByDeviceIdAndTimestampBetween(Long deviceId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
 }
