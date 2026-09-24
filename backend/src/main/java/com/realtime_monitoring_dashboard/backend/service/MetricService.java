@@ -7,6 +7,8 @@ import java.util.Random;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
@@ -153,4 +155,21 @@ private double round2(double value) {
                 .networkOutMbps(metric.getNetworkOutMbps())
                 .build();
     }
-}
+
+    public Page<MetricDTO> getMetricsByDeviceIdPaged(
+        Long deviceId,
+        LocalDateTime startDate,
+        LocalDateTime endDate,
+        Pageable pageable) {
+
+        Page<Metric> metricsPage;
+
+        if (startDate != null && endDate != null) {
+            metricsPage = metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable);
+        } else {
+            metricsPage = metricRepository.findByDeviceId(deviceId, pageable);
+        }
+
+        return metricsPage.map(this::mapToDTO);
+        }
+    }
