@@ -4,13 +4,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
+import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
@@ -172,4 +173,11 @@ private double round2(double value) {
 
         return metricsPage.map(this::mapToDTO);
         }
+
+        public MetricSummaryDTO getMetricSummary(Long deviceId, LocalDateTime startDate, LocalDateTime endDate) {
+    if (startDate == null) startDate = LocalDateTime.now().minusDays(7);
+    if (endDate == null) endDate = LocalDateTime.now();
+
+    return metricRepository.getMetricSummary(deviceId, startDate, endDate);
+}
     }
