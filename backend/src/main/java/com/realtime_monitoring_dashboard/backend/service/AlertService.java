@@ -93,6 +93,11 @@ public void resolveActiveAlertsForDevice(Device device) {
         
         messagingTemplate.convertAndSend("/topic/alerts", dto);
     }
+
+    public Page<AlertDTO> getAlertsPaged(Boolean resolved, AlertSeverity severity, Pageable pageable) {
+        return alertRepository.findAlertsFiltered(resolved, severity, pageable)
+        .map(this::mapToDTO);
+    }
 }
 
     
