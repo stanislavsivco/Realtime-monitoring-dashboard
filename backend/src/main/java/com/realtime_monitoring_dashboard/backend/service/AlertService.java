@@ -3,6 +3,8 @@ package com.realtime_monitoring_dashboard.backend.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -93,6 +95,7 @@ public void resolveActiveAlertsForDevice(Device device) {
         
         messagingTemplate.convertAndSend("/topic/alerts", dto);
     }
+}
 
     public Page<AlertDTO> getAlertsPaged(Boolean resolved, AlertSeverity severity, Pageable pageable) {
         return alertRepository.findAlertsFiltered(resolved, severity, pageable)
@@ -101,4 +104,3 @@ public void resolveActiveAlertsForDevice(Device device) {
 }
 
     
-}
