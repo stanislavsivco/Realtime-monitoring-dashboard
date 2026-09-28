@@ -11,6 +11,9 @@ export class Dashboard implements OnInit {
   diskUsage = signal<number | null>(null);
   ramUsage = signal<number | null>(null);
   latencyMs = signal<number | null>(null);
+  cpuUsage = signal<number | null>(null);
+  networkInUsage = signal<number | null>(null);
+  networkOutUsage = signal<number | null>(null);
 
   constructor(private metricService: MetricService) { }
 
@@ -20,6 +23,9 @@ export class Dashboard implements OnInit {
         this.diskUsage.set(metric.disk);
         this.ramUsage.set(metric.ram);
         this.latencyMs.set(metric.latencyMs);
+        this.cpuUsage.set(metric.cpu);
+        this.networkInUsage.set(metric.networkInMbps);
+        this.networkOutUsage.set(metric.networkOutMbps);
       },
       error: (err) => {
         console.error('Nepodarilo sa nacitat metriku', err);
