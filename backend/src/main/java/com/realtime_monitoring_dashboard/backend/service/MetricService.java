@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
+import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
@@ -106,8 +107,7 @@ public class MetricService {
 
     public MetricDTO getLatestMetricByDeviceId(Long deviceId) {
         Metric metric = metricRepository.findTopByDeviceIdOrderByTimestampDesc(deviceId)
-                .orElseThrow(() -> new RuntimeException("No metrics found for device " + deviceId));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Device with ID " + deviceId + " does not have any metrics or does not exist"));
         return mapToDTO(metric);
     }
 
