@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.realtime_monitoring_dashboard.backend.dto.AlertDTO;
 import com.realtime_monitoring_dashboard.backend.model.Alert;
+import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
@@ -43,7 +44,7 @@ public class AlertService {
 
     public AlertDTO acknowledgeAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
-                .orElseThrow(() -> new RuntimeException("Alert not found: " + alertId));
+                .orElseThrow(() -> new ResourceNotFoundException("Alert with ID " + alertId + " does not exist"));
         alert.setAcknowledged(true);
         Alert savedAlert = alertRepository.save(alert);
         AlertDTO dto = mapToDTO(savedAlert);
@@ -55,7 +56,7 @@ public class AlertService {
 
     public AlertDTO resolveAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
-                .orElseThrow(() -> new RuntimeException("Alert not found: " + alertId));
+                .orElseThrow(() -> new ResourceNotFoundException("Alert with ID " + alertId + " does not exist"));
         alert.setResolved(true);
         Alert savedAlert = alertRepository.save(alert);
         AlertDTO dto = mapToDTO(savedAlert);
