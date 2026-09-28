@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
@@ -36,12 +37,31 @@ public class MetricService {
         return metricRepository.findAll();
     }
 
-    public Metric saveMetric(Metric metric) {
-        if (metric.getTimestamp() == null) {
-            metric.setTimestamp(LocalDateTime.now());
-        }
-        return metricRepository.save(metric);
+    @Transactional
+public MetricDTO saveMetric(MetricDTO dto) {
+    
+    Device device = deviceRepository.findById(dto.getDeviceId())
+            .orElseThrow(() -> new RuntimeException("Device not found with id: " + dto.getDeviceId()));
+
+    
+    Metric metric = new Metric();
+    metric.setDevice(device);
+    metric.setCpu(dto.getCpu());
+    metric.setRam(dto.getRam());
+    metric.setDisk(dto.getDisk());
+    metric.setLatencyMs(dto.getLatencyMs());
+
+    
+    if (dto.getTimestamp() != null) {
+        metric.setTimestamp(dto.getTimestamp());
+    } else {
+        metric.setTimestamp(LocalDateTime.now());
     }
+
+    
+    Metric savedMetric = metricRepository.save(metric);
+    return mapToDTO(savedMetric);
+}
 
     @Scheduled(fixedRate = 5000)
     public void autoGenerateMetrics() {
