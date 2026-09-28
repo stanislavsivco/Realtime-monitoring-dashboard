@@ -2,6 +2,7 @@ package com.realtime_monitoring_dashboard.backend.service;
 
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
+import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
@@ -35,7 +36,7 @@ public class DeviceService {
 
     public DeviceDTO getDeviceById(Long id) {
         Device device = deviceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Device not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Device with ID " + id + " does not exist"));
         return mapToDTO(device);
     }
 
@@ -58,7 +59,7 @@ public class DeviceService {
 
     public DeviceDTO updateDevice(Long id, CreateDeviceRequestDTO request) {
         Device device = deviceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Device not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Device with ID " + id + " does not exist"));
 
         device.setName(request.getName());
         device.setType(request.getType());
