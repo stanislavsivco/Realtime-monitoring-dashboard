@@ -6,5 +6,5 @@ export const routes: Routes = [
     { path: 'devices/:id', loadComponent: () => import('./device-detail/device-detail').then(m => m.DeviceDetail) },
     { path: 'alerts', loadComponent: () => import('./alerts/alerts').then(m => m.Alerts) },
     { path: 'admin', loadComponent: () => import('./admin/admin').then(m => m.Admin) },
-    { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+    { path: '', redirectTo: 'dashboard', pathMatch: 'full' },   // presmeruje na dashboard
 ];

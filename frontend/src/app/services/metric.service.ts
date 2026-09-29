@@ -9,6 +9,9 @@ export interface MetricDTO {
     disk: number;
     ram: number;
     latencyMs: number;
+    cpu: number;
+    networkInMbps: number;
+    networkOutMbps: number;
 }
 
 @Injectable({
