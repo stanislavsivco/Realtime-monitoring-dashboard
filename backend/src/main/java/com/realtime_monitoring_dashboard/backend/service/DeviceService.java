@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
+import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
@@ -92,4 +93,22 @@ public class DeviceService {
             case ONLINE -> 3;
         };
     }
+
+    public DeviceDTO registerAgent(RegisterAgentRequestDTO request) {
+    return deviceRepository.findByName(request.getHostname())
+            .map(this::mapToDTO)
+            .orElseGet(() -> {
+                Device device = Device.builder()
+                        .name(request.getHostname())
+                        .type(request.getType() != null ? request.getType() : "Agent")
+                        .location(request.getLocation() != null ? request.getLocation() : "Unknown")
+                        .status(DeviceStatus.ONLINE)
+                        .build();
+
+                Device saved = deviceRepository.save(device);
+                DeviceDTO dto = mapToDTO(saved);
+                messagingTemplate.convertAndSend("/topic/devices", dto);
+                return dto;
+            });
+}
 }
