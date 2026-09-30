@@ -44,11 +44,7 @@ def register_device():
 
 
 def load_or_register_device_id():
-    """
-    Loads a cached device ID if one exists. Otherwise attempts to register
-    with the backend, retrying every 5 seconds if the backend is unreachable
-    (e.g. still starting up) instead of crashing immediately.
-    """
+    
     if os.path.exists(DEVICE_ID_FILE):
         with open(DEVICE_ID_FILE, "r") as f:
             device_id = int(f.read().strip())
