@@ -7,19 +7,24 @@ import requests
 
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://localhost:8080/api/devices")
 INTERVAL_SECONDS = int(os.environ.get("INTERVAL_SECONDS", "5"))
+
 DEVICE_ID_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".device_id")
 
-
 def get_hostname():
+   
     return socket.gethostname()
 
 
 def register_device():
-    """Register this machine with the backend, or retrieve existing device ID."""
+    """
+    Registers this machine with the backend via POST /register.
+    The backend either creates a new device or returns an existing one
+    if this hostname is already known.
+    """
     hostname = get_hostname()
     payload = {
         "hostname": hostname,
-        "type": platform.system(),
+        "type": platform.system(),   
         "location": "Unknown"
     }
 
@@ -29,6 +34,8 @@ def register_device():
         headers={"Content-Type": "application/json"},
         timeout=10
     )
+
+    
     response.raise_for_status()
 
     device = response.json()
@@ -42,14 +49,23 @@ def register_device():
 
 
 def load_or_register_device_id():
-    """Load cached device ID from disk, or register with backend if not found."""
+    """
+    Loads a cached device ID if one exists. Otherwise attempts to register
+    with the backend, retrying every 5 seconds if the backend is unreachable
+    (e.g. still starting up) instead of crashing immediately.
+    """
     if os.path.exists(DEVICE_ID_FILE):
         with open(DEVICE_ID_FILE, "r") as f:
             device_id = int(f.read().strip())
             print(f"[Cached] Using existing Device ID {device_id}")
             return device_id
 
-    return register_device()
+    while True:
+        try:
+            return register_device()
+        except requests.exceptions.RequestException as e:
+            print(f"[Registration failed] {e}. Retrying in 5s...")
+            time.sleep(5)
 
 
 def get_latency(host="1.1.1.1"):
@@ -103,4 +119,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nAgent stopped.")
