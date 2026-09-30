@@ -16,11 +16,6 @@ def get_hostname():
 
 
 def register_device():
-    """
-    Registers this machine with the backend via POST /register.
-    The backend either creates a new device or returns an existing one
-    if this hostname is already known.
-    """
     hostname = get_hostname()
     payload = {
         "hostname": hostname,
