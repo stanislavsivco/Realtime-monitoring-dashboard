@@ -2,7 +2,7 @@ package com.realtime_monitoring_dashboard.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Random;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,9 +11,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
-import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
+import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
@@ -27,94 +28,87 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MetricService {
 
+    private static final int OFFLINE_THRESHOLD_SECONDS = 30;
+
     private final MetricRepository metricRepository;
     private final DeviceRepository deviceRepository;
     private final AlertService alertService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final Random random = new Random();
-
-    public List<Metric> getAllMetrics() {
-        return metricRepository.findAll();
-    }
+    private final DeviceStatusCalculator statusCalculator;
 
     @Transactional
-public MetricDTO saveMetric(MetricDTO dto) {
-    
-    Device device = deviceRepository.findById(dto.getDeviceId())
-            .orElseThrow(() -> new RuntimeException("Device not found with id: " + dto.getDeviceId()));
+    public MetricDTO saveMetric(MetricDTO dto) {
+        Device device = deviceRepository.findById(dto.getDeviceId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Device not found with id: " + dto.getDeviceId()));
 
-    
-    Metric metric = new Metric();
-    metric.setDevice(device);
-    metric.setCpu(dto.getCpu());
-    metric.setRam(dto.getRam());
-    metric.setDisk(dto.getDisk());
-    metric.setLatencyMs(dto.getLatencyMs());
-
-    
-    if (dto.getTimestamp() != null) {
-        metric.setTimestamp(dto.getTimestamp());
-    } else {
-        metric.setTimestamp(LocalDateTime.now());
-    }
-
-    
-    Metric savedMetric = metricRepository.save(metric);
-    return mapToDTO(savedMetric);
-}
-
-    @Scheduled(fixedRate = 5000)
-    public void autoGenerateMetrics() {
-        List<Device> devices = deviceRepository.findAll();
-
-        if (devices.isEmpty()) {
-            System.out.println("No devices found in database, skipping metric generation.");
-            return;
-        }
-
-        for (Device device : devices) {
-        double roundedDisk = round2(10.0 + (85.0 * random.nextDouble()));
-        double roundedRam = round2(20.0 + (75.0 * random.nextDouble()));
-        double roundedCpu = round2(10.0 + (85.0 * random.nextDouble()));
-        int randomLatency = 5 + random.nextInt(145);
-        double randomNetworkIn = round2(random.nextDouble() * 500.0);
-        double randomNetworkOut = round2(random.nextDouble() * 500.0);
-
-            Metric metric = Metric.builder()
+        Metric metric = Metric.builder()
                 .device(device)
-                .disk(roundedDisk)
-                .ram(roundedRam)
-                .cpu(roundedCpu)
-                .latencyMs(randomLatency)
-                .networkInMbps(randomNetworkIn)
-                .networkOutMbps(randomNetworkOut)
-                .timestamp(LocalDateTime.now())
+                .cpu(dto.getCpu())
+                .ram(dto.getRam())
+                .disk(dto.getDisk())
+                .latencyMs(dto.getLatencyMs())
+                .networkInMbps(dto.getNetworkInMbps())
+                .networkOutMbps(dto.getNetworkOutMbps())
+                .timestamp(dto.getTimestamp() != null ? dto.getTimestamp() : LocalDateTime.now())
                 .build();
 
-            DeviceStatus newStatus = calculateStatus(metric);
+        applyStatusAndAlerts(device, metric);
 
-           if (newStatus == DeviceStatus.CRITICAL) {
-            alertService.createAlert(device, AlertSeverity.CRITICAL, 
-                String.format("Critical load on %s: CPU %.1f%%, RAM %.1f%%, Disk %.1f%%, Latency %d ms", 
-                    device.getName(), roundedCpu, roundedRam, roundedDisk, randomLatency));
-        } else if (newStatus == DeviceStatus.WARNING) {
-            alertService.createAlert(device, AlertSeverity.WARNING, 
-                String.format("Warning load on %s: CPU %.1f%%, RAM %.1f%%, Disk %.1f%%, Latency %d ms", 
-                    device.getName(), roundedCpu, roundedRam, roundedDisk, randomLatency));
-        } else {
-            alertService.resolveActiveAlertsForDevice(device);
-        }
+        Metric savedMetric = metricRepository.save(metric);
+        MetricDTO savedDto = mapToDTO(savedMetric);
 
-            device.setStatus(newStatus);
-            deviceRepository.save(device);
+        messagingTemplate.convertAndSend("/topic/metrics", savedDto);
 
-            Metric savedMetric = metricRepository.save(metric);
-            
-            
-            MetricDTO metricDTO = mapToDTO(savedMetric);
-            messagingTemplate.convertAndSend("/topic/metrics", metricDTO);
+        return savedDto;
+    }
 
-            System.out.println("Metric for " + device.getName() + ": Disk " + roundedDisk + "%, RAM " + roundedRam + "%, Latency " + randomLatency + " ms");
+    private void applyStatusAndAlerts(Device device, Metric metric) {
+    DeviceStatus newStatus = statusCalculator.calculate(metric);
+    DeviceStatus previousStatus = device.getStatus();
+
+    if (newStatus != previousStatus) {
+        alertService.resolveActiveAlertsForDevice(device);
+    }
+
+    if (newStatus == DeviceStatus.CRITICAL) {
+        alertService.createAlert(device, AlertSeverity.CRITICAL, buildAlertMessage(device, metric));
+    } else if (newStatus == DeviceStatus.WARNING) {
+        alertService.createAlert(device, AlertSeverity.WARNING, buildAlertMessage(device, metric));
+    }
+
+    device.setStatus(newStatus);
+    deviceRepository.save(device);
+}
+
+    private String buildAlertMessage(Device device, Metric metric) {
+        return String.format(
+                "Load on %s: CPU %.1f%%, RAM %.1f%%, Disk %.1f%%, Latency %d ms",
+                device.getName(),
+                metric.getCpu() != null ? metric.getCpu() : 0.0,
+                metric.getRam() != null ? metric.getRam() : 0.0,
+                metric.getDisk() != null ? metric.getDisk() : 0.0,
+                metric.getLatencyMs() != null ? metric.getLatencyMs() : 0);
+    }
+
+    @Scheduled(fixedRate = 10000)
+    public void checkOfflineDevices() {
+        List<Device> devices = deviceRepository.findAll();
+        LocalDateTime threshold = LocalDateTime.now().minusSeconds(OFFLINE_THRESHOLD_SECONDS);
+
+        for (Device device : devices) {
+            if (device.getStatus() == DeviceStatus.OFFLINE) {
+                continue;
+            }
+
+            Optional<Metric> latest = metricRepository.findTopByDeviceIdOrderByTimestampDesc(device.getId());
+            boolean isStale = latest.isEmpty() || latest.get().getTimestamp().isBefore(threshold);
+
+            if (isStale) {
+                device.setStatus(DeviceStatus.OFFLINE);
+                deviceRepository.save(device);
+                messagingTemplate.convertAndSend("/topic/devices", mapDeviceToDTO(device));
+            }
         }
     }
 
@@ -127,41 +121,34 @@ public MetricDTO saveMetric(MetricDTO dto) {
 
     public MetricDTO getLatestMetricByDeviceId(Long deviceId) {
         Metric metric = metricRepository.findTopByDeviceIdOrderByTimestampDesc(deviceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Device with ID " + deviceId + " does not have any metrics or does not exist"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Device with ID " + deviceId + " does not have any metrics or does not exist"));
         return mapToDTO(metric);
     }
 
-    private DeviceStatus calculateStatus(Metric metric) {
-    if (isCritical(metric)) {
-        return DeviceStatus.CRITICAL;
-    } else if (isWarning(metric)) {
-        return DeviceStatus.WARNING;
-    } else {
-        return DeviceStatus.ONLINE;
+    public Page<MetricDTO> getMetricsByDeviceIdPaged(
+            Long deviceId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable) {
+
+        Page<Metric> metricsPage;
+
+        if (startDate != null && endDate != null) {
+            metricsPage = metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable);
+        } else {
+            metricsPage = metricRepository.findByDeviceId(deviceId, pageable);
+        }
+
+        return metricsPage.map(this::mapToDTO);
     }
-}
 
-private boolean isCritical(Metric metric) {
-    return (metric.getCpu() != null && metric.getCpu() > 90.0)
-        || (metric.getRam() != null && metric.getRam() > 90.0)
-        || (metric.getDisk() != null && metric.getDisk() > 90.0)
-        || (metric.getLatencyMs() != null && metric.getLatencyMs() > 500)
-        || (metric.getNetworkInMbps() != null && metric.getNetworkInMbps() > 950.0)
-        || (metric.getNetworkOutMbps() != null && metric.getNetworkOutMbps() > 950.0);
-}
+    public MetricSummaryDTO getMetricSummary(Long deviceId, LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate == null) startDate = LocalDateTime.now().minusDays(7);
+        if (endDate == null) endDate = LocalDateTime.now();
 
-private boolean isWarning(Metric metric) {
-    return (metric.getCpu() != null && metric.getCpu() > 75.0)
-        || (metric.getRam() != null && metric.getRam() > 75.0)
-        || (metric.getDisk() != null && metric.getDisk() > 75.0)
-        || (metric.getLatencyMs() != null && metric.getLatencyMs() > 200)
-        || (metric.getNetworkInMbps() != null && metric.getNetworkInMbps() > 800.0)
-        || (metric.getNetworkOutMbps() != null && metric.getNetworkOutMbps() > 800.0);
-}
-
-private double round2(double value) {
-    return Math.round(value * 100.0) / 100.0;
-}
+        return metricRepository.getMetricSummary(deviceId, startDate, endDate);
+    }
 
     private MetricDTO mapToDTO(Metric metric) {
         return MetricDTO.builder()
@@ -177,27 +164,13 @@ private double round2(double value) {
                 .build();
     }
 
-    public Page<MetricDTO> getMetricsByDeviceIdPaged(
-        Long deviceId,
-        LocalDateTime startDate,
-        LocalDateTime endDate,
-        Pageable pageable) {
-
-        Page<Metric> metricsPage;
-
-        if (startDate != null && endDate != null) {
-            metricsPage = metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable);
-        } else {
-            metricsPage = metricRepository.findByDeviceId(deviceId, pageable);
-        }
-
-        return metricsPage.map(this::mapToDTO);
-        }
-
-        public MetricSummaryDTO getMetricSummary(Long deviceId, LocalDateTime startDate, LocalDateTime endDate) {
-    if (startDate == null) startDate = LocalDateTime.now().minusDays(7);
-    if (endDate == null) endDate = LocalDateTime.now();
-
-    return metricRepository.getMetricSummary(deviceId, startDate, endDate);
-}
+    private DeviceDTO mapDeviceToDTO(Device device) {
+        return DeviceDTO.builder()
+                .id(device.getId())
+                .name(device.getName())
+                .type(device.getType())
+                .location(device.getLocation())
+                .status(device.getStatus())
+                .build();
     }
+}

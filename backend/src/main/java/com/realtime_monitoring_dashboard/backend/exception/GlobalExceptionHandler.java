@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message("Neplatné vstupné dáta")
+                .message("Invalid input data")
                 .path(extractPath(request))
                 .fieldErrors(fieldErrors)
                 .build();
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
-                .message("Nastala neočakávaná chyba na serveri")
+                .message("An unexpected error occurred on the server")
                 .path(extractPath(request))
                 .build();
 
