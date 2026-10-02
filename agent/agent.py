@@ -2,24 +2,39 @@ import os
 import time
 import socket
 import platform
+import uuid
 import psutil
 import requests
 
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://localhost:8080/api/devices")
 INTERVAL_SECONDS = int(os.environ.get("INTERVAL_SECONDS", "5"))
 
-DEVICE_ID_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".device_id")
+AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEVICE_ID_FILE = os.path.join(AGENT_DIR, ".device_id")
+MACHINE_ID_FILE = os.path.join(AGENT_DIR, ".machine_id")
+
 
 def get_hostname():
-   
     return socket.gethostname()
 
 
+def get_machine_id():
+    if os.path.exists(MACHINE_ID_FILE):
+        with open(MACHINE_ID_FILE, "r") as f:
+            return f.read().strip()
+
+    machine_id = str(uuid.uuid4())
+    with open(MACHINE_ID_FILE, "w") as f:
+        f.write(machine_id)
+    return machine_id
+
+
 def register_device():
-    hostname = get_hostname()
+    device_name = f"{get_hostname()}-{get_machine_id()[:8]}"
+
     payload = {
-        "hostname": hostname,
-        "type": platform.system(),   
+        "hostname": device_name,
+        "type": platform.system(),
         "location": "Unknown"
     }
 
@@ -30,7 +45,6 @@ def register_device():
         timeout=10
     )
 
-    
     response.raise_for_status()
 
     device = response.json()
@@ -39,12 +53,11 @@ def register_device():
     with open(DEVICE_ID_FILE, "w") as f:
         f.write(str(device_id))
 
-    print(f"[Registered] Hostname '{hostname}' -> Device ID {device_id}")
+    print(f"[Registered] Device name '{device_name}' -> Device ID {device_id}")
     return device_id
 
 
 def load_or_register_device_id():
-    
     if os.path.exists(DEVICE_ID_FILE):
         with open(DEVICE_ID_FILE, "r") as f:
             device_id = int(f.read().strip())

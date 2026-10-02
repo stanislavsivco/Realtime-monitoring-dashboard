@@ -64,7 +64,7 @@ public class MetricService {
     }
 
     private void applyStatusAndAlerts(Device device, Metric metric) {
-    DeviceStatus newStatus = statusCalculator.calculate(metric);
+    DeviceStatus newStatus = statusCalculator.calculate(device, metric);
     DeviceStatus previousStatus = device.getStatus();
 
     if (newStatus != previousStatus) {
