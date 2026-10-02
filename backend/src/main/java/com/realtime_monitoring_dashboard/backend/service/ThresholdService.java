@@ -1,14 +1,17 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
+import org.springframework.stereotype.Service;
+
 import com.realtime_monitoring_dashboard.backend.dto.ThresholdDTO;
 import com.realtime_monitoring_dashboard.backend.dto.UpdateThresholdRequestDTO;
+import com.realtime_monitoring_dashboard.backend.exception.InvalidThresholdException;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.Threshold;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.ThresholdRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +39,8 @@ public class ThresholdService {
     }
 
     public ThresholdDTO updateThreshold(Long deviceId, UpdateThresholdRequestDTO request) {
+        validateWarningBelowCritical(request);
+
         Threshold threshold = getOrCreateDefaultForDevice(deviceId);
 
         threshold.setCpuWarning(request.getCpuWarning());
@@ -49,6 +54,21 @@ public class ThresholdService {
 
         Threshold saved = thresholdRepository.save(threshold);
         return mapToDTO(saved);
+    }
+
+    private void validateWarningBelowCritical(UpdateThresholdRequestDTO request) {
+        if (request.getCpuWarning() >= request.getCpuCritical()) {
+            throw new InvalidThresholdException("cpuWarning must be lower than cpuCritical");
+        }
+        if (request.getRamWarning() >= request.getRamCritical()) {
+            throw new InvalidThresholdException("ramWarning must be lower than ramCritical");
+        }
+        if (request.getDiskWarning() >= request.getDiskCritical()) {
+            throw new InvalidThresholdException("diskWarning must be lower than diskCritical");
+        }
+        if (request.getLatencyWarningMs() >= request.getLatencyCriticalMs()) {
+            throw new InvalidThresholdException("latencyWarningMs must be lower than latencyCriticalMs");
+        }
     }
 
     private Threshold createDefaultThreshold(Long deviceId) {
