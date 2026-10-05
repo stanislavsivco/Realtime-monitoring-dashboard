@@ -50,6 +50,7 @@ public class MetricController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
 
+        requirePositive(id);
         return ResponseEntity.ok(metricService.getMetricsByDeviceIdPaged(id, startDate, endDate, pageable));
     }
 
@@ -58,15 +59,17 @@ public class MetricController {
     @ApiResponse(responseCode = "404", description = "Device does not have any metrics or does not exist")
     @GetMapping("/{deviceId}/metrics/latest")
     public ResponseEntity<MetricDTO> getLatestMetric(@Parameter(description = "Device ID")@PathVariable @Positive Long deviceId) {
+        requirePositive(deviceId);
         return ResponseEntity.ok(metricService.getLatestMetricByDeviceId(deviceId));
     }
 
     @GetMapping("/{id}/analytics")
     public ResponseEntity<MetricSummaryDTO> getDeviceAnalytics(
-        @PathVariable Long id,
+        @PathVariable @Positive Long id,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
 
+    requirePositive(id);
     return ResponseEntity.ok(metricService.getMetricSummary(id, startDate, endDate));
 }
 
@@ -75,4 +78,10 @@ public ResponseEntity<Void> ingestMetric(@Valid @RequestBody MetricDTO dto) {
     metricService.saveMetric(dto);
     return ResponseEntity.status(HttpStatus.CREATED).build();
 }
+
+    private void requirePositive(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("id must be a positive number, got: " + id);
+        }
+    }
 }

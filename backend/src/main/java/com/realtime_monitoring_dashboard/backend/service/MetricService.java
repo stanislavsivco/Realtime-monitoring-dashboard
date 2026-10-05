@@ -3,6 +3,8 @@ package com.realtime_monitoring_dashboard.backend.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,12 +31,14 @@ import lombok.RequiredArgsConstructor;
 public class MetricService {
 
     private static final int OFFLINE_THRESHOLD_SECONDS = 30;
+    private static final Set<String> SEEDED_DEVICE_TYPES = Set.of("Server", "Database", "Router", "Storage");
 
     private final MetricRepository metricRepository;
     private final DeviceRepository deviceRepository;
     private final AlertService alertService;
     private final SimpMessagingTemplate messagingTemplate;
     private final DeviceStatusCalculator statusCalculator;
+    private final Random random = new Random();
 
     @Transactional
     public MetricDTO saveMetric(MetricDTO dto) {
@@ -61,6 +65,40 @@ public class MetricService {
         messagingTemplate.convertAndSend("/topic/metrics", savedDto);
 
         return savedDto;
+    }
+
+    @Scheduled(fixedRate = 5000)
+    public void autoGenerateMetrics() {
+        List<Device> devices = deviceRepository.findAll();
+
+        for (Device device : devices) {
+            if (!SEEDED_DEVICE_TYPES.contains(device.getType())) {
+                continue;
+            }
+
+            double disk = round2(10 + random.nextDouble() * 85);
+            double ram = round2(20 + random.nextDouble() * 75);
+            double cpu = round2(10 + random.nextDouble() * 85);
+            int latencyMs = 5 + random.nextInt(146);
+            double networkInMbps = round2(random.nextDouble() * 500);
+            double networkOutMbps = round2(random.nextDouble() * 500);
+
+            MetricDTO dto = MetricDTO.builder()
+                    .deviceId(device.getId())
+                    .cpu(cpu)
+                    .ram(ram)
+                    .disk(disk)
+                    .latencyMs(latencyMs)
+                    .networkInMbps(networkInMbps)
+                    .networkOutMbps(networkOutMbps)
+                    .build();
+
+            saveMetric(dto);
+        }
+    }
+
+    private double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private void applyStatusAndAlerts(Device device, Metric metric) {
