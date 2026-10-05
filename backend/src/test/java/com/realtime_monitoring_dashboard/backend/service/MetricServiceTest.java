@@ -80,7 +80,7 @@ class MetricServiceTest {
     void saveMetricStoresAllFieldsIncludingNetworkThroughput() {
         Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
         LocalDateTime timestamp = LocalDateTime.of(2026, 9, 1, 12, 0);
 
@@ -107,7 +107,7 @@ class MetricServiceTest {
     @Test
     void saveMetricUsesCurrentTimeWhenTimestampMissing() {
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device(1L, "Server-1", DeviceStatus.ONLINE)));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
         LocalDateTime before = LocalDateTime.now();
 
@@ -134,7 +134,7 @@ class MetricServiceTest {
     void transitionToCriticalResolvesOldAlertsAndCreatesCriticalAlert() {
         Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
         stubSavesToEchoArguments();
 
         metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(95.0).ram(50.0).disk(50.0).build());
@@ -148,7 +148,7 @@ class MetricServiceTest {
     void transitionToWarningResolvesOldAlertsAndCreatesWarningAlert() {
         Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.WARNING);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.WARNING);
         stubSavesToEchoArguments();
 
         metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(80.0).ram(50.0).disk(50.0).build());
@@ -162,7 +162,7 @@ class MetricServiceTest {
     void transitionToOnlineOnlyResolvesWithoutCreatingAlert() {
         Device device = device(1L, "Server-1", DeviceStatus.CRITICAL);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
 
         metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
@@ -176,7 +176,7 @@ class MetricServiceTest {
     void unchangedStatusDoesNotTriggerResolve() {
         Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
 
         metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
@@ -189,7 +189,7 @@ class MetricServiceTest {
     void repeatedCriticalReadingsKeepCreatingAlertsWithoutResolving() {
         Device device = device(1L, "Server-1", DeviceStatus.CRITICAL);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
         stubSavesToEchoArguments();
 
         metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(95.0).ram(50.0).disk(50.0).build());
@@ -360,7 +360,7 @@ class MetricServiceTest {
         device.setType(seededType);
         when(deviceRepository.findAll()).thenReturn(List.of(device));
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
 
         metricService.autoGenerateMetrics();
@@ -391,7 +391,7 @@ class MetricServiceTest {
         agent.setType("Windows");
         when(deviceRepository.findAll()).thenReturn(List.of(seeded, agent));
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(seeded));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
 
         metricService.autoGenerateMetrics();
@@ -410,7 +410,7 @@ class MetricServiceTest {
         when(deviceRepository.findAll()).thenReturn(devices);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(devices.get(0)));
         when(deviceRepository.findById(2L)).thenReturn(Optional.of(devices.get(1)));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
 
         metricService.autoGenerateMetrics();
@@ -434,7 +434,7 @@ class MetricServiceTest {
         device.setType("Server");
         when(deviceRepository.findAll()).thenReturn(List.of(device));
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
-        when(statusCalculator.calculate(any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
         stubSavesToEchoArguments();
 
         metricService.autoGenerateMetrics();
