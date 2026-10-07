@@ -82,6 +82,7 @@ public class DeviceService {
                 .type(device.getType())
                 .location(device.getLocation())
                 .status(device.getStatus())
+                .simulated(device.isSimulated())
                 .build();
     }
 
@@ -103,6 +104,7 @@ public class DeviceService {
                         .type(request.getType() != null ? request.getType() : "Agent")
                         .location(request.getLocation() != null ? request.getLocation() : "Unknown")
                         .status(DeviceStatus.ONLINE)
+                        .simulated(false)
                         .build();
 
                 Device saved = deviceRepository.save(device);

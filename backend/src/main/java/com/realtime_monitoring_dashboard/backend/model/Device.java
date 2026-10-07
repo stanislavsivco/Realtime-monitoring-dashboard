@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import org.hibernate.annotations.ColumnDefault;
+
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "devices")
@@ -25,6 +27,11 @@ public class Device {
 
     @Enumerated(EnumType.STRING)
     private DeviceStatus status;
+
+    @Column(nullable = false)
+    @ColumnDefault("true")
+    @Builder.Default
+    private boolean simulated = true;
 
     @OneToMany (mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
