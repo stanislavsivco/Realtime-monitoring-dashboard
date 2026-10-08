@@ -354,10 +354,11 @@ class MetricServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Server", "Database", "Router", "Storage"})
-    void autoGenerateProcessesEverySeededDeviceType(String seededType) {
-        Device device = device(1L, "Seeded-1", DeviceStatus.ONLINE);
-        device.setType(seededType);
+    @ValueSource(strings = {"Server", "Database", "Router", "Storage", "Computer", "Laptop"})
+    void autoGenerateProcessesSimulatedDevicesOfEveryType(String simulatedType) {
+        Device device = device(1L, "Simulated-1", DeviceStatus.ONLINE);
+        device.setType(simulatedType);
+        device.setSimulated(true);
         when(deviceRepository.findAll()).thenReturn(List.of(device));
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
@@ -370,10 +371,11 @@ class MetricServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Windows", "Linux", "Darwin", "Agent"})
-    void autoGenerateSkipsNonSeededDeviceTypes(String agentType) {
+    @ValueSource(strings = {"Windows", "Linux", "Darwin", "Agent", "Server"})
+    void autoGenerateSkipsAgentDevicesOfEveryType(String agentType) {
         Device device = device(1L, "agent-host", DeviceStatus.ONLINE);
         device.setType(agentType);
+        device.setSimulated(false);
         when(deviceRepository.findAll()).thenReturn(List.of(device));
 
         metricService.autoGenerateMetrics();
@@ -384,11 +386,13 @@ class MetricServiceTest {
     }
 
     @Test
-    void autoGenerateOnlyTouchesSeededDevicesInAMixedFleet() {
+    void autoGenerateOnlyTouchesSimulatedDevicesInAMixedFleet() {
         Device seeded = device(1L, "Web Server 01", DeviceStatus.ONLINE);
         seeded.setType("Server");
+        seeded.setSimulated(true);
         Device agent = device(2L, "johns-laptop", DeviceStatus.ONLINE);
         agent.setType("Windows");
+        agent.setSimulated(false);
         when(deviceRepository.findAll()).thenReturn(List.of(seeded, agent));
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(seeded));
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);

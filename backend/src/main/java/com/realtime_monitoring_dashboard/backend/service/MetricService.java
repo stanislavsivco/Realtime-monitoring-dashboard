@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +30,6 @@ import lombok.RequiredArgsConstructor;
 public class MetricService {
 
     private static final int OFFLINE_THRESHOLD_SECONDS = 30;
-    private static final Set<String> SEEDED_DEVICE_TYPES = Set.of("Server", "Database", "Router", "Storage");
 
     private final MetricRepository metricRepository;
     private final DeviceRepository deviceRepository;
@@ -72,7 +70,7 @@ public class MetricService {
         List<Device> devices = deviceRepository.findAll();
 
         for (Device device : devices) {
-            if (!SEEDED_DEVICE_TYPES.contains(device.getType())) {
+            if (!device.isSimulated()) {
                 continue;
             }
 
@@ -209,6 +207,7 @@ public class MetricService {
                 .type(device.getType())
                 .location(device.getLocation())
                 .status(device.getStatus())
+                .simulated(device.isSimulated())
                 .build();
     }
 }

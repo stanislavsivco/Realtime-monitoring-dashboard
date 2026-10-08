@@ -114,7 +114,10 @@ class DeviceServiceTest {
         assertThat(saved.getValue().getLocation()).isEqualTo("Kosice");
         assertThat(saved.getValue().getStatus()).isEqualTo(DeviceStatus.WARNING);
 
+        assertThat(saved.getValue().isSimulated()).isTrue();
+
         assertThat(result.getId()).isEqualTo(10L);
+        assertThat(result.isSimulated()).isTrue();
         verify(messagingTemplate).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
     }
 
@@ -185,7 +188,9 @@ class DeviceServiceTest {
         assertThat(captor.getValue().getType()).isEqualTo("Server");
         assertThat(captor.getValue().getLocation()).isEqualTo("DC2");
         assertThat(captor.getValue().getStatus()).isEqualTo(DeviceStatus.ONLINE);
+        assertThat(captor.getValue().isSimulated()).isFalse();
         assertThat(result.getId()).isEqualTo(42L);
+        assertThat(result.isSimulated()).isFalse();
         verify(messagingTemplate).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
     }
 
