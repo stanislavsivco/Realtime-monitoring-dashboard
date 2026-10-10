@@ -87,7 +87,8 @@
                     </div>
                     <div class="device-row-status">
                         <span class="status-dot {{ getStatusClass(device.status) }}"></span>
-                        <span class="status-text {{ getStatusClass(device.status) }}">{{ getStatusClass(device.status) }}</span>
+                        <span class="status-text {{ getStatusClass(device.status) }}">{{ getStatusClass(device.status)
+                            }}</span>
                     </div>
                 </button>
                 }
@@ -112,7 +113,8 @@
                         <div class="detail-name-row">
                             <span class="detail-name">{{ device.name }}</span>
                             <span class="status-dot {{ getStatusClass(device.status) }}"></span>
-                            <span class="status-text {{ getStatusClass(device.status) }}">{{ getStatusClass(device.status) }}</span>
+                            <span class="status-text {{ getStatusClass(device.status) }}">{{
+                                getStatusClass(device.status) }}</span>
                             <span class="source-badge {{ getSourceClass(device) }}">{{ getSourceLabel(device) }}</span>
                         </div>
                         <div class="detail-sub">{{ device.location }} &middot; {{ device.type }}</div>
@@ -148,7 +150,7 @@
                                 <path d="M12 3a2 2 0 0 0-2 2v9.5a4 4 0 1 0 4 0V5a2 2 0 0 0-2-2Z" />
                                 <circle cx="12" cy="18" r="1.2" fill="currentColor" />
                             </svg>Temperature</div>
-                        <div class="metric-value">52&deg;C</div>
+                        <div class="metric-value">–</div>
                     </div>
 
                     <div class="panel-card card-metric">
@@ -163,7 +165,6 @@
                                 [style.--percent]="cpuUsage() ?? 0"></circle>
                             <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{ cpuUsage() }}%</text>
                         </svg>
-                        <div class="metric-sub">4.2 GHz / 10 GHz</div>
                     </div>
 
                     <div class="panel-card card-metric">
@@ -178,7 +179,6 @@
                                 [style.--percent]="ramUsage() ?? 0"></circle>
                             <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{ ramUsage() }}%</text>
                         </svg>
-                        <div class="metric-sub">10.7 GB / 16 GB</div>
                     </div>
 
                     <div class="panel-card card-metric">
@@ -194,7 +194,6 @@
                                 [style.--percent]="diskUsage() ?? 0"></circle>
                             <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{ diskUsage() }}%</text>
                         </svg>
-                        <div class="metric-sub">67 GB / 256 GB</div>
                     </div>
 
                     <div class="panel-card card-metric">
@@ -209,7 +208,6 @@
                             <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{ latencyMs()
                                 }}ms</text>
                         </svg>
-                        <div class="metric-sub">Network response</div>
                     </div>
 
                     <div class="panel-card card-metric">
@@ -221,8 +219,9 @@
                             <circle class="metric-track" cx="60" cy="60" r="50"></circle>
                             <circle class="metric-fill metric-fill-net-in" cx="60" cy="60" r="50"
                                 [style.--percent]="(networkInUsage() ?? 0) / 500 * 100"></circle>
-                            <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{ networkInUsage() }}
-                                Mbps</text>
+                            <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{
+                                formatNetwork(networkInUsage()) }}
+                            </text>
                         </svg>
                         <div class="metric-sub">Download</div>
                     </div>
@@ -236,8 +235,9 @@
                             <circle class="metric-track" cx="60" cy="60" r="50"></circle>
                             <circle class="metric-fill metric-fill-net-out" cx="60" cy="60" r="50"
                                 [style.--percent]="(networkOutUsage() ?? 0) / 500 * 100"></circle>
-                            <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{ networkOutUsage() }}
-                                Mbps</text>
+                            <text x="60" y="66" text-anchor="middle" class="metric-ring-value">{{
+                                formatNetwork(networkOutUsage()) }}
+                            </text>
                         </svg>
                         <div class="metric-sub">Upload</div>
                     </div>
