@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 import { MetricService, MetricDTO } from '../services/metric.service';
 import { WebsocketService } from '../services/websocket.service';
 import { DeviceService, DeviceDTO } from '../services/device.service';
@@ -21,6 +21,9 @@ export class Dashboard implements OnInit, OnDestroy {
   selectedDeviceId = signal<number | null>(null);
   devices = signal<DeviceDTO[]>([]);
   private metricsSubscription?: Subscription;
+  private devicesSubscription?: Subscription;
+  private deletedDevicesSubscription?: Subscription;
+  private refreshSubscription?: Subscription;
 
   visibleDevices = computed(() => {
     const result: DeviceDTO[] = [];
@@ -49,7 +52,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.deviceService.getDevices().subscribe({
       next: (deviceList) => {
         this.devices.set(deviceList);
-        this.selectFirstDevice();
+        this.selectCategory('computers');
       },
       error: (err) => {
         console.error('Couldnt load the devices', err);
@@ -60,6 +63,18 @@ export class Dashboard implements OnInit, OnDestroy {
       if (metric.deviceId === this.selectedDeviceId()) {
         this.applyMetric(metric);
       }
+    });
+
+    this.devicesSubscription = this.websocketService.devices$.subscribe((device) => {
+      this.updateDevice(device);
+    });
+
+    this.deletedDevicesSubscription = this.websocketService.deletedDevices$.subscribe((deviceId) => {
+      this.removeDevice(deviceId);
+    });
+
+    this.refreshSubscription = interval(10000).subscribe(() => {
+      this.reloadDevices();
     });
   }
 
@@ -100,6 +115,13 @@ export class Dashboard implements OnInit, OnDestroy {
     return 'agent';
   }
 
+  formatNetwork(value: number | null): string {
+    if (value === null) {
+      return '–';
+    }
+    return value + ' Mbps';
+  }
+
   selectCategory(category: string): void {
     this.selectedCategory.set(category);
     const list = this.visibleDevices();
@@ -126,19 +148,6 @@ export class Dashboard implements OnInit, OnDestroy {
     });
   }
 
-  private selectFirstDevice(): void {
-    const categories = ['computers', 'servers', 'routers'];
-    for (const category of categories) {
-      this.selectedCategory.set(category);
-      const list = this.visibleDevices();
-      if (list.length > 0) {
-        this.selectDevice(list[0].id);
-        return;
-      }
-    }
-    this.selectedCategory.set('computers');
-  }
-
   private resetMetrics(): void {
     this.diskUsage.set(null);
     this.ramUsage.set(null);
@@ -157,7 +166,57 @@ export class Dashboard implements OnInit, OnDestroy {
     this.networkOutUsage.set(metric.networkOutMbps);
   }
 
+  private updateDevice(device: DeviceDTO): void {
+    const list: DeviceDTO[] = [];
+    let found = false;
+    for (const existing of this.devices()) {
+      if (existing.id === device.id) {
+        list.push(device);
+        found = true;
+      } else {
+        list.push(existing);
+      }
+    }
+    if (!found) {
+      list.push(device);
+    }
+    this.devices.set(list);
+    if (this.selectedDeviceId() === null) {
+      this.selectCategory(this.selectedCategory());
+    }
+  }
+
+  private removeDevice(deviceId: number): void {
+    const list: DeviceDTO[] = [];
+    for (const existing of this.devices()) {
+      if (existing.id !== deviceId) {
+        list.push(existing);
+      }
+    }
+    this.devices.set(list);
+    if (this.selectedDeviceId() === deviceId) {
+      this.selectCategory(this.selectedCategory());
+    }
+  }
+
+  private reloadDevices(): void {
+    this.deviceService.getDevices().subscribe({
+      next: (deviceList) => {
+        this.devices.set(deviceList);
+        if (this.selectedDeviceId() === null) {
+          this.selectCategory(this.selectedCategory());
+        }
+      },
+      error: (err) => {
+        console.error('Couldnt reload the devices', err);
+      }
+    });
+  }
+
   ngOnDestroy(): void {
     this.metricsSubscription?.unsubscribe();
+    this.devicesSubscription?.unsubscribe();
+    this.deletedDevicesSubscription?.unsubscribe();
+    this.refreshSubscription?.unsubscribe();
   }
 }
