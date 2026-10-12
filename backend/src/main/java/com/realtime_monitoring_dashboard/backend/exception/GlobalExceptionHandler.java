@@ -109,6 +109,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred on the server", request);
     }
 
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUsernameExists(UsernameAlreadyExistsException ex, WebRequest request) {
+    return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+}
+
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, WebRequest request) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
