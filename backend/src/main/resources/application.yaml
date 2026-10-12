@@ -16,3 +16,7 @@ spring:
 
 server:
   port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:dev-only-secret-change-me-to-something-long-and-random-32chars-min}
+  expiration-ms: 86400000
