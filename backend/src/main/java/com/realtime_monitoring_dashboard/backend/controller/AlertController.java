@@ -37,7 +37,7 @@ public class AlertController {
             @Parameter(description = "Filter by alert severity (INFO, WARNING, CRITICAL)")
             @RequestParam(required = false) AlertSeverity severity,
 
-            @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 15, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
 
         return ResponseEntity.ok(alertService.getAlertsPaged(resolved, severity, pageable));
     }
@@ -48,6 +48,7 @@ public class AlertController {
     @PatchMapping("/{id}/acknowledge")
     public ResponseEntity<AlertDTO> acknowledgeAlert(
             @Parameter(description = "Alert ID") @PathVariable @Positive Long id) {
+        requirePositive(id);
         return ResponseEntity.ok(alertService.acknowledgeAlert(id));
     }
 
@@ -57,6 +58,13 @@ public class AlertController {
     @PatchMapping("/{id}/resolve")
     public ResponseEntity<AlertDTO> resolveAlert(
             @Parameter(description = "Alert ID") @PathVariable @Positive Long id) {
+        requirePositive(id);
         return ResponseEntity.ok(alertService.resolveAlert(id));
+    }
+
+    private void requirePositive(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("id must be a positive number, got: " + id);
+        }
     }
 }

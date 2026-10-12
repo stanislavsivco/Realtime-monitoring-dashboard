@@ -16,4 +16,5 @@ public class DeviceDTO {
     private String type;
     private String location;
     private DeviceStatus status;
+    private boolean simulated;
 }

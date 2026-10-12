@@ -1,7 +1,8 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { Subscription, interval } from 'rxjs';
 import { MetricService, MetricDTO } from '../services/metric.service';
 import { WebsocketService } from '../services/websocket.service';
+import { DeviceService, DeviceDTO } from '../services/device.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -16,31 +17,144 @@ export class Dashboard implements OnInit, OnDestroy {
   cpuUsage = signal<number | null>(null);
   networkInUsage = signal<number | null>(null);
   networkOutUsage = signal<number | null>(null);
+  selectedCategory = signal<string>('computers');
+  selectedDeviceId = signal<number | null>(null);
+  devices = signal<DeviceDTO[]>([]);
   private metricsSubscription?: Subscription;
+  private devicesSubscription?: Subscription;
+  private deletedDevicesSubscription?: Subscription;
+  private refreshSubscription?: Subscription;
 
-  constructor(private metricService: MetricService, private websocketService: WebsocketService) { }
+  visibleDevices = computed(() => {
+    const result: DeviceDTO[] = [];
+    for (const device of this.devices()) {
+      if (this.getCategory(device) === this.selectedCategory()) {
+        result.push(device);
+      }
+    }
+    return result;
+  });
+
+  selectedDevice = computed(() => {
+    for (const device of this.devices()) {
+      if (device.id === this.selectedDeviceId()) {
+        return device;
+      }
+    }
+    return null;
+  });
+
+  constructor(private metricService: MetricService, private websocketService: WebsocketService, private deviceService: DeviceService) { }
 
   ngOnInit(): void {
     this.websocketService.connect();
 
-    this.metricService.getLatestMetric(1).subscribe({
-      next: (metric) => this.applyMetric(metric),
+    this.deviceService.getDevices().subscribe({
+      next: (deviceList) => {
+        this.devices.set(deviceList);
+        this.selectCategory('computers');
+      },
       error: (err) => {
-        console.error('Couldnt load the metric', err);
-      }
-    });
-
-    this.websocketService.metrics$.subscribe((metric) => {
-      if (metric.deviceId === 1) {
-        this.applyMetric(metric);
+        console.error('Couldnt load the devices', err);
       }
     });
 
     this.metricsSubscription = this.websocketService.metrics$.subscribe((metric) => {
-      if (metric.deviceId === 1) {
+      if (metric.deviceId === this.selectedDeviceId()) {
         this.applyMetric(metric);
       }
     });
+
+    this.devicesSubscription = this.websocketService.devices$.subscribe((device) => {
+      this.updateDevice(device);
+    });
+
+    this.deletedDevicesSubscription = this.websocketService.deletedDevices$.subscribe((deviceId) => {
+      this.removeDevice(deviceId);
+    });
+
+    this.refreshSubscription = interval(10000).subscribe(() => {
+      this.reloadDevices();
+    });
+  }
+
+  getCategory(device: DeviceDTO): string {
+    if (device.type === 'Server' || device.type === 'Database' || device.type === 'Storage') {
+      return 'servers';
+    }
+    if (device.type === 'Router') {
+      return 'routers';
+    }
+    return 'computers';
+  }
+
+  getStatusClass(status: string): string {
+    if (status === 'ONLINE') {
+      return 'online';
+    }
+    if (status === 'WARNING') {
+      return 'warning';
+    }
+    if (status === 'CRITICAL') {
+      return 'critical';
+    }
+    return 'offline';
+  }
+
+  getSourceLabel(device: DeviceDTO): string {
+    if (device.simulated) {
+      return 'Simulated';
+    }
+    return 'Live agent';
+  }
+
+  getSourceClass(device: DeviceDTO): string {
+    if (device.simulated) {
+      return 'simulated';
+    }
+    return 'agent';
+  }
+
+  formatNetwork(value: number | null): string {
+    if (value === null) {
+      return '–';
+    }
+    return value + ' Mbps';
+  }
+
+  selectCategory(category: string): void {
+    this.selectedCategory.set(category);
+    const list = this.visibleDevices();
+    if (list.length > 0) {
+      this.selectDevice(list[0].id);
+    } else {
+      this.selectedDeviceId.set(null);
+      this.resetMetrics();
+    }
+  }
+
+  selectDevice(deviceId: number): void {
+    this.selectedDeviceId.set(deviceId);
+    this.resetMetrics();
+    this.metricService.getLatestMetric(deviceId).subscribe({
+      next: (metric) => {
+        if (this.selectedDeviceId() === deviceId) {
+          this.applyMetric(metric);
+        }
+      },
+      error: (err) => {
+        console.error('Couldnt load the metric', err);
+      }
+    });
+  }
+
+  private resetMetrics(): void {
+    this.diskUsage.set(null);
+    this.ramUsage.set(null);
+    this.latencyMs.set(null);
+    this.cpuUsage.set(null);
+    this.networkInUsage.set(null);
+    this.networkOutUsage.set(null);
   }
 
   private applyMetric(metric: MetricDTO): void {
@@ -52,7 +166,57 @@ export class Dashboard implements OnInit, OnDestroy {
     this.networkOutUsage.set(metric.networkOutMbps);
   }
 
+  private updateDevice(device: DeviceDTO): void {
+    const list: DeviceDTO[] = [];
+    let found = false;
+    for (const existing of this.devices()) {
+      if (existing.id === device.id) {
+        list.push(device);
+        found = true;
+      } else {
+        list.push(existing);
+      }
+    }
+    if (!found) {
+      list.push(device);
+    }
+    this.devices.set(list);
+    if (this.selectedDeviceId() === null) {
+      this.selectCategory(this.selectedCategory());
+    }
+  }
+
+  private removeDevice(deviceId: number): void {
+    const list: DeviceDTO[] = [];
+    for (const existing of this.devices()) {
+      if (existing.id !== deviceId) {
+        list.push(existing);
+      }
+    }
+    this.devices.set(list);
+    if (this.selectedDeviceId() === deviceId) {
+      this.selectCategory(this.selectedCategory());
+    }
+  }
+
+  private reloadDevices(): void {
+    this.deviceService.getDevices().subscribe({
+      next: (deviceList) => {
+        this.devices.set(deviceList);
+        if (this.selectedDeviceId() === null) {
+          this.selectCategory(this.selectedCategory());
+        }
+      },
+      error: (err) => {
+        console.error('Couldnt reload the devices', err);
+      }
+    });
+  }
+
   ngOnDestroy(): void {
     this.metricsSubscription?.unsubscribe();
+    this.devicesSubscription?.unsubscribe();
+    this.deletedDevicesSubscription?.unsubscribe();
+    this.refreshSubscription?.unsubscribe();
   }
 }

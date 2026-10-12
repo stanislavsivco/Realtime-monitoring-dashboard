@@ -279,6 +279,47 @@ button {
     color: var(--text-faint);
 }
 
+.status-dot.critical {
+    background-color: var(--crit);
+}
+
+.status-text.critical {
+    color: var(--crit);
+}
+
+.status-text {
+    text-transform: capitalize;
+}
+
+.device-row-source {
+    margin-top: 4px;
+}
+
+.source-badge {
+    padding: 2px 8px;
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 999px;
+}
+
+.source-badge.simulated {
+    color: var(--text-muted);
+    background-color: var(--bg);
+}
+
+.source-badge.agent {
+    color: var(--ok);
+    background-color: rgba(22, 163, 74, 0.1);
+}
+
+.device-list-empty {
+    color: var(--text-faint);
+    padding: 24px 12px;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
 .kbd-hint {
     display: flex;
     color: var(--text-faint);

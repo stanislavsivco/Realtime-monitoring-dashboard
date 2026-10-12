@@ -50,6 +50,7 @@ public class DeviceController {
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @GetMapping("/{id}")
     public ResponseEntity<DeviceDTO> getDeviceByID(@Parameter(description = "Device ID")@PathVariable @Positive Long id) {
+        requirePositive(id);
         return ResponseEntity.ok(deviceService.getDeviceById(id));
     }
 
@@ -67,6 +68,7 @@ public class DeviceController {
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @PutMapping("/{id}")
     public ResponseEntity<DeviceDTO> updateDevice(@Parameter(description = "Device ID")@PathVariable @Positive Long id, @RequestBody @Valid CreateDeviceRequestDTO request) {
+        requirePositive(id);
         return ResponseEntity.ok(deviceService.updateDevice(id, request));
     }
 
@@ -75,8 +77,15 @@ public class DeviceController {
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDevice(@Parameter(description = "Device ID")@PathVariable @Positive Long id) {
+        requirePositive(id);
         deviceService.deleteDevice(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private void requirePositive(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("id must be a positive number, got: " + id);
+        }
     }
 
     @Operation(summary = "Register or re-identify an agent by hostname", 
