@@ -13,6 +13,9 @@ AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEVICE_ID_FILE = os.path.join(AGENT_DIR, ".device_id")
 MACHINE_ID_FILE = os.path.join(AGENT_DIR, ".machine_id")
 
+_last_net_io = None
+_last_net_time = None
+
 
 def get_hostname():
     return socket.gethostname()
@@ -81,13 +84,42 @@ def get_latency(host="1.1.1.1"):
         return None
 
 
+def get_network_mbps():
+    global _last_net_io, _last_net_time
+
+    current = psutil.net_io_counters()
+    current_time = time.time()
+
+    if _last_net_io is None:
+        _last_net_io = current
+        _last_net_time = current_time
+        return None, None
+
+    elapsed = current_time - _last_net_time
+    if elapsed <= 0:
+        return None, None
+
+    bytes_in_per_sec = (current.bytes_recv - _last_net_io.bytes_recv) / elapsed
+    bytes_out_per_sec = (current.bytes_sent - _last_net_io.bytes_sent) / elapsed
+
+    _last_net_io = current
+    _last_net_time = current_time
+
+    mbps_in = round(max(bytes_in_per_sec, 0) * 8 / 1_000_000, 3)
+    mbps_out = round(max(bytes_out_per_sec, 0) * 8 / 1_000_000, 3)
+    return mbps_in, mbps_out
+
+
 def collect_metrics(device_id):
+    network_in, network_out = get_network_mbps()
     return {
         "deviceId": device_id,
         "cpu": psutil.cpu_percent(interval=1),
         "ram": psutil.virtual_memory().percent,
         "disk": psutil.disk_usage('/').percent,
-        "latencyMs": get_latency()
+        "latencyMs": get_latency(),
+        "networkInMbps": network_in,
+        "networkOutMbps": network_out
     }
 
 
@@ -109,8 +141,11 @@ def main():
             )
 
             if response.status_code in (200, 201):
+                net_in = payload['networkInMbps']
+                net_out = payload['networkOutMbps']
+                net_str = f"NetIn: {net_in} Mbps | NetOut: {net_out} Mbps" if net_in is not None else "NetIn: -- | NetOut: --"
                 print(f"[OK] CPU: {payload['cpu']}% | RAM: {payload['ram']}% | "
-                      f"DISK: {payload['disk']}% | Latency: {payload['latencyMs']}ms")
+                      f"DISK: {payload['disk']}% | Latency: {payload['latencyMs']}ms | {net_str}")
             else:
                 print(f"[Error {response.status_code}] Backend rejected metrics: {response.text}")
 
