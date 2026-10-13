@@ -10,13 +10,12 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
@@ -27,14 +26,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
-@RestController 
+@RestController
 @RequestMapping("/api/devices")
-@RequiredArgsConstructor 
-@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 @Validated
 @Tag(name = "Metrics", description = "History and present device metrics")
 public class MetricController {
@@ -50,7 +48,6 @@ public class MetricController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        requirePositive(id);
         return ResponseEntity.ok(metricService.getMetricsByDeviceIdPaged(id, startDate, endDate, pageable));
     }
 
@@ -58,30 +55,22 @@ public class MetricController {
     @ApiResponse(responseCode = "200", description = "Metric found")
     @ApiResponse(responseCode = "404", description = "Device does not have any metrics or does not exist")
     @GetMapping("/{deviceId}/metrics/latest")
-    public ResponseEntity<MetricDTO> getLatestMetric(@Parameter(description = "Device ID")@PathVariable @Positive Long deviceId) {
-        requirePositive(deviceId);
+    public ResponseEntity<MetricDTO> getLatestMetric(@Parameter(description = "Device ID") @PathVariable @Positive Long deviceId) {
         return ResponseEntity.ok(metricService.getLatestMetricByDeviceId(deviceId));
     }
 
     @GetMapping("/{id}/analytics")
     public ResponseEntity<MetricSummaryDTO> getDeviceAnalytics(
-        @PathVariable @Positive Long id,
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+            @PathVariable @Positive Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
 
-    requirePositive(id);
-    return ResponseEntity.ok(metricService.getMetricSummary(id, startDate, endDate));
-}
+        return ResponseEntity.ok(metricService.getMetricSummary(id, startDate, endDate));
+    }
 
-@PostMapping("/ingest")
-public ResponseEntity<Void> ingestMetric(@Valid @RequestBody MetricDTO dto) {
-    metricService.saveMetric(dto);
-    return ResponseEntity.status(HttpStatus.CREATED).build();
-}
-
-    private void requirePositive(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("id must be a positive number, got: " + id);
-        }
+    @PostMapping("/ingest")
+    public ResponseEntity<Void> ingestMetric(@Valid @RequestBody MetricDTO dto) {
+        metricService.saveMetric(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }
