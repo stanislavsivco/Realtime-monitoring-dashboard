@@ -45,11 +45,16 @@
 - Agent API key and CORS hardening (branch 53_SecurityHardening):
   - AgentApiKeyFilter checks X-Agent-Key on /api/devices/register and /api/devices/ingest with constant-time comparison
   - CORS restricted to FRONTEND_ORIGIN instead of wildcard
+- Neon connection (PR 42, branch 52-connection-to-Neon):
+  - docker-compose.yml reads backend configuration from devops/.env (gitignored), connects to Neon
+  - docker-compose.local-db.yml override for a local PostgreSQL container
+  - Fake metric generator interval changed from 5 s to 10 s
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
-- docker-compose: read secrets from .env instead of hardcoded postgres password, pass JWT_SECRET, ADMIN_*, AGENT_API_KEY, FRONTEND_ORIGIN, use DB_* variable names
+- docker-compose.local-db.yml: move the hardcoded postgres password to devops/.env, use DB_* variable names instead of SPRING_DATASOURCE_*
+- devops/.env.example documenting required variables for docker-compose (JWT_SECRET, AGENT_API_KEY of 32+ bytes, ADMIN_*, FRONTEND_ORIGIN, DB_*)
 - Swagger disabled in production via SWAGGER_ENABLED switch
 - Rate limiting for /api/auth/login and /api/auth/register (brute-force protection)
 - STOMP authentication for /ws
