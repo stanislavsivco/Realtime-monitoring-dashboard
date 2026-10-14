@@ -28,6 +28,12 @@
   - JWT token excluded from AuthResponseDTO toString
   - The last ADMIN cannot be demoted (LastAdminException, 409), admin rows locked with PESSIMISTIC_WRITE during the check
   - UserServiceTest added
+- JWT hardening (branch 53_SecurityHardening):
+  - JWT_SECRET read as UTF-8, backend fails at startup if it is blank or shorter than 32 bytes
+  - Signing key and parser created once, token parsed once per request
+  - Token lifetime configurable via JWT_EXPIRATION_MS (default 24 hours)
+  - Removed unused extractRole and redundant isTokenValid
+  - JwtServiceTest added (foreign key, tampered, expired, unsigned tokens, config validation)
 - Agent API key and CORS hardening (branch 53_SecurityHardening):
   - AgentApiKeyFilter checks X-Agent-Key on /api/devices/register and /api/devices/ingest with constant-time comparison
   - CORS restricted to FRONTEND_ORIGIN instead of wildcard
@@ -36,6 +42,7 @@
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
 - STOMP authentication for /ws
+- Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
 - Frontend: login, role-aware UI, threshold management, analytics
 - Predictive trend engine
 - Simulation mode: smooth random-walk metrics with scripted incidents, SIMULATION_ENABLED switch, retention cleanup, "Simulated" badge in the UI
