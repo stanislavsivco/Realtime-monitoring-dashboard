@@ -8,7 +8,10 @@ import requests
 
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://localhost:8080/api/devices")
 INTERVAL_SECONDS = int(os.environ.get("INTERVAL_SECONDS", "5"))
-AGENT_API_KEY = os.environ.get("AGENT_API_KEY", "")
+AGENT_API_KEY = os.environ.get("AGENT_API_KEY", "").strip()
+
+if not AGENT_API_KEY:
+    raise SystemExit("AGENT_API_KEY environment variable is not set. The agent cannot authenticate with the backend.")
 
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEVICE_ID_FILE = os.path.join(AGENT_DIR, ".device_id")

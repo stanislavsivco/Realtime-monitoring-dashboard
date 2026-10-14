@@ -34,6 +34,14 @@
   - Token lifetime configurable via JWT_EXPIRATION_MS (default 24 hours)
   - Removed unused extractRole and redundant isTokenValid
   - JwtServiceTest added (foreign key, tampered, expired, unsigned tokens, config validation)
+- Security config hardening (branch 53_SecurityHardening):
+  - AGENT_API_KEY required at startup with minimum 32 bytes (empty key no longer accepts empty header)
+  - AgentApiKeyFilter strips context path and trailing slashes before matching protected paths
+  - Unauthenticated requests return the same JSON ErrorResponse as the rest of the API (RestAuthenticationEntryPoint, SecurityErrorWriter)
+  - FRONTEND_ORIGIN accepts a comma-separated list, trailing slashes are removed, wildcard is rejected
+  - show-sql controlled by SHOW_SQL (default false)
+  - Agent exits with a clear message when AGENT_API_KEY is missing
+  - AgentApiKeyFilterTest, RestAuthenticationEntryPointTest and SecurityConfigTest added
 - Agent API key and CORS hardening (branch 53_SecurityHardening):
   - AgentApiKeyFilter checks X-Agent-Key on /api/devices/register and /api/devices/ingest with constant-time comparison
   - CORS restricted to FRONTEND_ORIGIN instead of wildcard
@@ -41,6 +49,9 @@
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
+- docker-compose: read secrets from .env instead of hardcoded postgres password, pass JWT_SECRET, ADMIN_*, AGENT_API_KEY, FRONTEND_ORIGIN, use DB_* variable names
+- Swagger disabled in production via SWAGGER_ENABLED switch
+- Rate limiting for /api/auth/login and /api/auth/register (brute-force protection)
 - STOMP authentication for /ws
 - Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
 - Frontend: login, role-aware UI, threshold management, analytics
