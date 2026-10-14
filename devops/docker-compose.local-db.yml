@@ -1,0 +1,26 @@
+services:
+  backend:
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/rmd
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    container_name: rmd-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: rmd
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+
+  # lokálna DB
+  # docker compose -f docker-compose.yml -f docker-compose.local-db.yml up --build #

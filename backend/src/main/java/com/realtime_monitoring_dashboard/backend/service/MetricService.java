@@ -65,7 +65,7 @@ public class MetricService {
         return savedDto;
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 10000)
     public void autoGenerateMetrics() {
         List<Device> devices = deviceRepository.findAll();
 
