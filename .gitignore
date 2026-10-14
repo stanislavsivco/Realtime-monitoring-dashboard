@@ -29,3 +29,6 @@ agent/*.pyc
 agent/.device_id
 agent/.env
 agent/venv/
+
+# devops #
+devops/.env

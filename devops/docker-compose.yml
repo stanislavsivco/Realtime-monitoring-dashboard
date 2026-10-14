@@ -6,24 +6,8 @@ services:
     container_name: rmd-backend
     ports:
       - "8080:8080"
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/rmd
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-    depends_on:
-      - db
+    env_file:
+      - .env
 
-  db:
-    image: postgres:15-alpine
-    container_name: rmd-db
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: rmd
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
+       # Neon #
+       # docker compose up --build #
