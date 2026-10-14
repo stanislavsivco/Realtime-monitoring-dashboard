@@ -84,6 +84,19 @@ class AuthControllerTest {
     }
 
     @Test
+    void registerWithInvalidCharactersInUsernameReturns400() throws Exception {
+        String body = """
+                {"username": "jo hn", "password": "securepass1"}
+                """;
+
+        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.username").exists());
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
     void registerWithPasswordTooShortReturns400() throws Exception {
         String body = """
                 {"username": "john", "password": "short"}

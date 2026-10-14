@@ -18,6 +18,13 @@
   - AuthControllerTest and UserControllerTest added
   - MetricServiceTest updated for findBySimulatedTrue()
   - Agent reports networkInMbps and networkOutMbps via psutil.net_io_counters()
+- User hardening (branch 53_SecurityHardening):
+  - User entity uses @Getter/@Setter instead of @Data, password excluded from toString (also in login/register DTOs)
+  - Usernames normalized (trim + lowercase) via UsernameNormalizer, case-insensitive lookups and duplicate check
+  - Username allowed characters: letters, digits, dot, underscore, hyphen
+  - Concurrent duplicate registration returns 409 instead of 500
+  - AdminSeeder skips creation if ADMIN_USERNAME is blank or already taken
+  - AuthServiceTest added
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
@@ -29,7 +36,7 @@
 - Predictive trend engine
 - Simulation mode: smooth random-walk metrics with scripted incidents, SIMULATION_ENABLED switch, retention cleanup, "Simulated" badge in the UI
 - Deployment (Render, later Oracle Cloud or Azure) with environment variables
-- Database migrations (Flyway) instead of ddl-auto update
+- Database migrations (Flyway) instead of ddl-auto update, including a unique index on lower(username)
 
 ## Ideas
 - (add new ideas here)

@@ -10,7 +10,9 @@ import com.realtime_monitoring_dashboard.backend.model.Role;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
+    Optional<User> findByUsernameIgnoreCase(String username);
+
+    boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByRole(Role role);
 }
