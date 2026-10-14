@@ -3,8 +3,8 @@ package com.realtime_monitoring_dashboard.backend.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,12 +28,10 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping ("/api/devices")
-@RequiredArgsConstructor 
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/devices")
+@RequiredArgsConstructor
 @Validated
 @Tag(name = "Devices", description = "Monitored devices")
-
 public class DeviceController {
 
     private final DeviceService deviceService;
@@ -49,16 +47,16 @@ public class DeviceController {
     @ApiResponse(responseCode = "200", description = "Device found")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @GetMapping("/{id}")
-    public ResponseEntity<DeviceDTO> getDeviceByID(@Parameter(description = "Device ID")@PathVariable @Positive Long id) {
-        requirePositive(id);
+    public ResponseEntity<DeviceDTO> getDeviceByID(@Parameter(description = "Device ID") @PathVariable @Positive Long id) {
         return ResponseEntity.ok(deviceService.getDeviceById(id));
     }
 
     @Operation(summary = "Create new device")
     @ApiResponse(responseCode = "200", description = "Device created")
     @ApiResponse(responseCode = "400", description = "Invalid input data")
-    @PostMapping 
-    public ResponseEntity<DeviceDTO> createDevice (@RequestBody @Valid CreateDeviceRequestDTO request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public ResponseEntity<DeviceDTO> createDevice(@RequestBody @Valid CreateDeviceRequestDTO request) {
         return ResponseEntity.ok(deviceService.createDevice(request));
     }
 
@@ -66,34 +64,28 @@ public class DeviceController {
     @ApiResponse(responseCode = "200", description = "Device edited")
     @ApiResponse(responseCode = "400", description = "Invalid input data")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<DeviceDTO> updateDevice(@Parameter(description = "Device ID")@PathVariable @Positive Long id, @RequestBody @Valid CreateDeviceRequestDTO request) {
-        requirePositive(id);
+    public ResponseEntity<DeviceDTO> updateDevice(@Parameter(description = "Device ID") @PathVariable @Positive Long id,
+            @RequestBody @Valid CreateDeviceRequestDTO request) {
         return ResponseEntity.ok(deviceService.updateDevice(id, request));
     }
 
     @Operation(summary = "Delete device")
     @ApiResponse(responseCode = "204", description = "Device deleted")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDevice(@Parameter(description = "Device ID")@PathVariable @Positive Long id) {
-        requirePositive(id);
+    public ResponseEntity<Void> deleteDevice(@Parameter(description = "Device ID") @PathVariable @Positive Long id) {
         deviceService.deleteDevice(id);
         return ResponseEntity.noContent().build();
     }
 
-    private void requirePositive(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("id must be a positive number, got: " + id);
-        }
+    @Operation(summary = "Register or re-identify an agent by hostname",
+            description = "Returns existing device if hostname is already known, otherwise creates a new one")
+    @ApiResponse(responseCode = "200", description = "Device registered or found")
+    @PostMapping("/register")
+    public ResponseEntity<DeviceDTO> registerAgent(@RequestBody @Valid RegisterAgentRequestDTO request) {
+        return ResponseEntity.ok(deviceService.registerAgent(request));
     }
-
-    @Operation(summary = "Register or re-identify an agent by hostname", 
-           description = "Returns existing device if hostname is already known, otherwise creates a new one")
-@ApiResponse(responseCode = "200", description = "Device registered or found")
-@PostMapping("/register")
-public ResponseEntity<DeviceDTO> registerAgent(@RequestBody @Valid RegisterAgentRequestDTO request) {
-    return ResponseEntity.ok(deviceService.registerAgent(request));
-}
-
 }

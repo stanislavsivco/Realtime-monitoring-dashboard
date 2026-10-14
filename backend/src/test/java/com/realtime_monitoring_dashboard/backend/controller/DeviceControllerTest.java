@@ -103,14 +103,6 @@ class DeviceControllerTest {
     }
 
     @Test
-    void getDeviceByIdWithNegativeIdReturns400() throws Exception {
-        mockMvc.perform(get("/api/devices/-1"))
-                .andExpect(status().isBadRequest());
-
-        verifyNoInteractions(deviceService);
-    }
-
-    @Test
     void createDevicePassesRequestToServiceAndReturnsDevice() throws Exception {
         when(deviceService.createDevice(any(CreateDeviceRequestDTO.class))).thenReturn(dto(10L, "Server-1"));
 

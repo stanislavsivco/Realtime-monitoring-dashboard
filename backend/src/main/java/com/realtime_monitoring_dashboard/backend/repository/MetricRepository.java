@@ -21,8 +21,6 @@ public interface MetricRepository extends JpaRepository<Metric, Long> {
 
     Optional<Metric> findTopByDeviceIdOrderByTimestampDesc(Long deviceId);
 
-    Optional<Metric> findFirstByDeviceIdOrderByTimestampDesc(Long deviceId);
-
     Page<Metric> findByDeviceId(Long deviceId, Pageable pageable);
 
     Page<Metric> findByDeviceIdAndTimestampBetween(
@@ -42,6 +40,5 @@ public interface MetricRepository extends JpaRepository<Metric, Long> {
         @Param("deviceId") Long deviceId,
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate
-);
-
+    );
 }

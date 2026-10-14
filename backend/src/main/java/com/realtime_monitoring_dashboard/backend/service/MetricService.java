@@ -43,7 +43,26 @@ public class MetricService {
         Device device = deviceRepository.findById(dto.getDeviceId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Device not found with id: " + dto.getDeviceId()));
+        return persistMetric(device, dto);
+    }
 
+    @Scheduled(fixedRate = 5000)
+    public void autoGenerateMetrics() {
+        for (Device device : deviceRepository.findBySimulatedTrue()) {
+            MetricDTO dto = MetricDTO.builder()
+                    .deviceId(device.getId())
+                    .cpu(round2(10 + random.nextDouble() * 85))
+                    .ram(round2(20 + random.nextDouble() * 75))
+                    .disk(round2(10 + random.nextDouble() * 85))
+                    .latencyMs(5 + random.nextInt(146))
+                    .networkInMbps(round2(random.nextDouble() * 500))
+                    .networkOutMbps(round2(random.nextDouble() * 500))
+                    .build();
+            saveMetric(dto);
+        }
+    }
+
+    private MetricDTO persistMetric(Device device, MetricDTO dto) {
         Metric metric = Metric.builder()
                 .device(device)
                 .cpu(dto.getCpu())
@@ -100,22 +119,22 @@ public class MetricService {
     }
 
     private void applyStatusAndAlerts(Device device, Metric metric) {
-    DeviceStatus newStatus = statusCalculator.calculate(device, metric);
-    DeviceStatus previousStatus = device.getStatus();
+        DeviceStatus newStatus = statusCalculator.calculate(device, metric);
+        DeviceStatus previousStatus = device.getStatus();
 
-    if (newStatus != previousStatus) {
-        alertService.resolveActiveAlertsForDevice(device);
+        if (newStatus != previousStatus) {
+            alertService.resolveActiveAlertsForDevice(device);
+        }
+
+        if (newStatus == DeviceStatus.CRITICAL) {
+            alertService.createAlert(device, AlertSeverity.CRITICAL, buildAlertMessage(device, metric));
+        } else if (newStatus == DeviceStatus.WARNING) {
+            alertService.createAlert(device, AlertSeverity.WARNING, buildAlertMessage(device, metric));
+        }
+
+        device.setStatus(newStatus);
+        deviceRepository.save(device);
     }
-
-    if (newStatus == DeviceStatus.CRITICAL) {
-        alertService.createAlert(device, AlertSeverity.CRITICAL, buildAlertMessage(device, metric));
-    } else if (newStatus == DeviceStatus.WARNING) {
-        alertService.createAlert(device, AlertSeverity.WARNING, buildAlertMessage(device, metric));
-    }
-
-    device.setStatus(newStatus);
-    deviceRepository.save(device);
-}
 
     private String buildAlertMessage(Device device, Metric metric) {
         return String.format(
@@ -168,15 +187,11 @@ public class MetricService {
             LocalDateTime endDate,
             Pageable pageable) {
 
-        Page<Metric> metricsPage;
-
         if (startDate != null && endDate != null) {
-            metricsPage = metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable);
-        } else {
-            metricsPage = metricRepository.findByDeviceId(deviceId, pageable);
+            return metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable)
+                    .map(this::mapToDTO);
         }
-
-        return metricsPage.map(this::mapToDTO);
+        return metricRepository.findByDeviceId(deviceId, pageable).map(this::mapToDTO);
     }
 
     public MetricSummaryDTO getMetricSummary(Long deviceId, LocalDateTime startDate, LocalDateTime endDate) {

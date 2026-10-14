@@ -11,13 +11,13 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/devices")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Validated
 @Tag(name = "Thresholds", description = "Per-device alert thresholds")
 public class ThresholdController {
@@ -38,6 +38,7 @@ public class ThresholdController {
     @ApiResponse(responseCode = "200", description = "Thresholds updated")
     @ApiResponse(responseCode = "400", description = "Invalid input data")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/thresholds")
     public ResponseEntity<ThresholdDTO> updateThresholds(
             @Parameter(description = "Device ID") @PathVariable @Positive Long id,

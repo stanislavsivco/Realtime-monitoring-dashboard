@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.realtime_monitoring_dashboard.backend.dto.AlertDTO;
-import com.realtime_monitoring_dashboard.backend.model.Alert;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
+import com.realtime_monitoring_dashboard.backend.model.Alert;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class AlertService {
 
     private final AlertRepository alertRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public void createAlert(Device device, AlertSeverity severity, String message) {
         Alert alert = Alert.builder()
@@ -42,27 +43,44 @@ public class AlertService {
                 .toList();
     }
 
+    @Transactional
     public AlertDTO acknowledgeAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new ResourceNotFoundException("Alert with ID " + alertId + " does not exist"));
         alert.setAcknowledged(true);
-        Alert savedAlert = alertRepository.save(alert);
-        AlertDTO dto = mapToDTO(savedAlert);
-
+        AlertDTO dto = mapToDTO(alertRepository.save(alert));
         messagingTemplate.convertAndSend("/topic/alerts", dto);
-
         return dto;
     }
 
+    @Transactional
     public AlertDTO resolveAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new ResourceNotFoundException("Alert with ID " + alertId + " does not exist"));
         alert.setResolved(true);
-        Alert savedAlert = alertRepository.save(alert);
-        AlertDTO dto = mapToDTO(savedAlert);
-
+        AlertDTO dto = mapToDTO(alertRepository.save(alert));
         messagingTemplate.convertAndSend("/topic/alerts", dto);
         return dto;
+    }
+
+    @Transactional
+    public void resolveActiveAlertsForDevice(Device device) {
+        List<Alert> activeAlerts = alertRepository.findByDeviceIdAndResolvedFalse(device.getId());
+
+        if (activeAlerts.isEmpty()) {
+            return;
+        }
+
+        for (Alert alert : activeAlerts) {
+            alert.setResolved(true);
+            AlertDTO dto = mapToDTO(alertRepository.save(alert));
+            messagingTemplate.convertAndSend("/topic/alerts", dto);
+        }
+    }
+
+    public Page<AlertDTO> getAlertsPaged(Boolean resolved, AlertSeverity severity, Pageable pageable) {
+        return alertRepository.findAlertsFiltered(resolved, severity, pageable)
+                .map(this::mapToDTO);
     }
 
     private AlertDTO mapToDTO(Alert alert) {
@@ -77,31 +95,4 @@ public class AlertService {
                 .resolved(alert.isResolved())
                 .build();
     }
-
-    private final SimpMessagingTemplate messagingTemplate;
-
-    @Transactional
-public void resolveActiveAlertsForDevice(Device device) {
-    List<Alert> activeAlerts = alertRepository.findByDeviceIdAndResolvedFalse(device.getId());
-
-    if (activeAlerts.isEmpty()) {
-        return;
-    }
-
-    for (Alert alert : activeAlerts) {
-        alert.setResolved(true);
-        Alert savedAlert = alertRepository.save(alert);
-        AlertDTO dto = mapToDTO(savedAlert);
-
-        
-        messagingTemplate.convertAndSend("/topic/alerts", dto);
-    }
 }
-
-    public Page<AlertDTO> getAlertsPaged(Boolean resolved, AlertSeverity severity, Pageable pageable) {
-        return alertRepository.findAlertsFiltered(resolved, severity, pageable)
-        .map(this::mapToDTO);
-    }
-}
-
-    
