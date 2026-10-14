@@ -25,13 +25,17 @@
   - Concurrent duplicate registration returns 409 instead of 500
   - AdminSeeder skips creation if ADMIN_USERNAME is blank or already taken
   - AuthServiceTest added
+  - JWT token excluded from AuthResponseDTO toString
+  - The last ADMIN cannot be demoted (LastAdminException, 409), admin rows locked with PESSIMISTIC_WRITE during the check
+  - UserServiceTest added
+- Agent API key and CORS hardening (branch 53_SecurityHardening):
+  - AgentApiKeyFilter checks X-Agent-Key on /api/devices/register and /api/devices/ingest with constant-time comparison
+  - CORS restricted to FRONTEND_ORIGIN instead of wildcard
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
-- Agent API key for /api/devices/register and /api/devices/ingest
 - STOMP authentication for /ws
-- CORS restricted to the real frontend origin
 - Frontend: login, role-aware UI, threshold management, analytics
 - Predictive trend engine
 - Simulation mode: smooth random-walk metrics with scripted incidents, SIMULATION_ENABLED switch, retention cleanup, "Simulated" badge in the UI

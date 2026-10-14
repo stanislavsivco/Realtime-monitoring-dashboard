@@ -25,6 +25,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import com.realtime_monitoring_dashboard.backend.dto.UserDTO;
 import com.realtime_monitoring_dashboard.backend.exception.GlobalExceptionHandler;
+import com.realtime_monitoring_dashboard.backend.exception.LastAdminException;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.Role;
 import com.realtime_monitoring_dashboard.backend.service.UserService;
@@ -119,5 +120,16 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.message").value("User with ID 99 does not exist"));
     }
 
+    @Test
+    void changeRoleOfLastAdminReturns409() throws Exception {
+        when(userService.changeUserRole(eq(1L), eq(Role.VIEWER)))
+                .thenThrow(new LastAdminException("Cannot remove the ADMIN role from the last administrator"));
+        String body = """
+                {"role": "VIEWER"}
+                """;
 
+        mockMvc.perform(patch("/api/users/1/role").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot remove the ADMIN role from the last administrator"));
+    }
 }
