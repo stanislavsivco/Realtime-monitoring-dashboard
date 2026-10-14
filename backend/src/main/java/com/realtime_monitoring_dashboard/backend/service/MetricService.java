@@ -46,7 +46,7 @@ public class MetricService {
         return persistMetric(device, dto);
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 10000)
     public void autoGenerateMetrics() {
         for (Device device : deviceRepository.findBySimulatedTrue()) {
             MetricDTO dto = MetricDTO.builder()
@@ -82,36 +82,6 @@ public class MetricService {
         messagingTemplate.convertAndSend("/topic/metrics", savedDto);
 
         return savedDto;
-    }
-
-    @Scheduled(fixedRate = 10000)
-    public void autoGenerateMetrics() {
-        List<Device> devices = deviceRepository.findAll();
-
-        for (Device device : devices) {
-            if (!device.isSimulated()) {
-                continue;
-            }
-
-            double disk = round2(10 + random.nextDouble() * 85);
-            double ram = round2(20 + random.nextDouble() * 75);
-            double cpu = round2(10 + random.nextDouble() * 85);
-            int latencyMs = 5 + random.nextInt(146);
-            double networkInMbps = round2(random.nextDouble() * 500);
-            double networkOutMbps = round2(random.nextDouble() * 500);
-
-            MetricDTO dto = MetricDTO.builder()
-                    .deviceId(device.getId())
-                    .cpu(cpu)
-                    .ram(ram)
-                    .disk(disk)
-                    .latencyMs(latencyMs)
-                    .networkInMbps(networkInMbps)
-                    .networkOutMbps(networkOutMbps)
-                    .build();
-
-            saveMetric(dto);
-        }
     }
 
     private double round2(double value) {

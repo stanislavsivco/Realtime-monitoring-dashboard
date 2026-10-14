@@ -3,6 +3,7 @@ package com.realtime_monitoring_dashboard.backend.config;
 import com.realtime_monitoring_dashboard.backend.model.Role;
 import com.realtime_monitoring_dashboard.backend.model.User;
 import com.realtime_monitoring_dashboard.backend.repository.UserRepository;
+import com.realtime_monitoring_dashboard.backend.security.UsernameNormalizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,13 +36,24 @@ public class AdminSeeder implements CommandLineRunner {
             return;
         }
 
+        String username = UsernameNormalizer.normalize(adminUsername);
+        if (username == null || username.isBlank()) {
+            log.warn("No ADMIN exists and ADMIN_USERNAME is blank. Skipping admin creation.");
+            return;
+        }
+
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
+            log.warn("No ADMIN exists, but username '{}' is already taken by another user. Skipping admin creation.", username);
+            return;
+        }
+
         User admin = User.builder()
-                .username(adminUsername)
+                .username(username)
                 .password(passwordEncoder.encode(adminPassword))
                 .role(Role.ADMIN)
                 .build();
 
         userRepository.save(admin);
-        log.info("Initial admin '{}' created.", adminUsername);
+        log.info("Initial admin '{}' created.", username);
     }
 }

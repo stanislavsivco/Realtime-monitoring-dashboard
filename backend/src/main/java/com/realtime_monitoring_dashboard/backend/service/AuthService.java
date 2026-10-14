@@ -8,7 +8,9 @@ import com.realtime_monitoring_dashboard.backend.model.Role;
 import com.realtime_monitoring_dashboard.backend.model.User;
 import com.realtime_monitoring_dashboard.backend.repository.UserRepository;
 import com.realtime_monitoring_dashboard.backend.security.JwtService;
+import com.realtime_monitoring_dashboard.backend.security.UsernameNormalizer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,28 +26,40 @@ public class AuthService {
     private final JwtService jwtService;
 
     public AuthResponseDTO register(RegisterRequestDTO request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new UsernameAlreadyExistsException("Username '" + request.getUsername() + "' is already taken");
+        String username = UsernameNormalizer.normalize(request.getUsername());
+
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
+            throw usernameTaken(username);
         }
 
         User user = User.builder()
-                .username(request.getUsername())
+                .username(username)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.VIEWER)
                 .build();
 
-        User saved = userRepository.save(user);
-        return buildResponse(saved);
+        try {
+            User saved = userRepository.saveAndFlush(user);
+            return buildResponse(saved);
+        } catch (DataIntegrityViolationException ex) {
+            throw usernameTaken(username);
+        }
     }
 
     public AuthResponseDTO login(LoginRequestDTO request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        String username = UsernameNormalizer.normalize(request.getUsername());
 
-        User user = userRepository.findByUsername(request.getUsername())
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, request.getPassword()));
+
+        User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
 
         return buildResponse(user);
+    }
+
+    private UsernameAlreadyExistsException usernameTaken(String username) {
+        return new UsernameAlreadyExistsException("Username '" + username + "' is already taken");
     }
 
     private AuthResponseDTO buildResponse(User user) {

@@ -9,7 +9,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -19,8 +19,14 @@ server:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration-ms: 86400000
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 admin:
   username: ${ADMIN_USERNAME:admin}
-  password: ${ADMIN_PASSWORD:}
+  password: ${ADMIN_PASSWORD}
+
+frontend:
+  origin: ${FRONTEND_ORIGIN:http://localhost:4200}
+
+agent:
+  api-key: ${AGENT_API_KEY}
