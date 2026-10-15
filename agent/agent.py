@@ -150,6 +150,11 @@ def main():
                 net_str = f"NetIn: {net_in} Mbps | NetOut: {net_out} Mbps" if net_in is not None else "NetIn: -- | NetOut: --"
                 print(f"[OK] CPU: {payload['cpu']}% | RAM: {payload['ram']}% | "
                       f"DISK: {payload['disk']}% | Latency: {payload['latencyMs']}ms | {net_str}")
+            elif response.status_code == 404:
+                print(f"[Not Found] Device ID {device_id} no longer exists on the backend. Registering again...")
+                if os.path.exists(DEVICE_ID_FILE):
+                    os.remove(DEVICE_ID_FILE)
+                device_id = load_or_register_device_id()
             else:
                 print(f"[Error {response.status_code}] Backend rejected metrics: {response.text}")
 
