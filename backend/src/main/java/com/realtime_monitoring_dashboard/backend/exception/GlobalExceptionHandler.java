@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -117,6 +118,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LastAdminException.class)
     public ResponseEntity<ErrorResponse> handleLastAdmin(LastAdminException ex, WebRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DeviceNameAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleDeviceNameExists(DeviceNameAlreadyExistsException ex, WebRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
+        log.warn("Data integrity violation while processing request [{}]: {}", extractPath(request), ex.getMostSpecificCause().getMessage());
+        return build(HttpStatus.CONFLICT, "The request conflicts with the current state of the data", request);
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, WebRequest request) {

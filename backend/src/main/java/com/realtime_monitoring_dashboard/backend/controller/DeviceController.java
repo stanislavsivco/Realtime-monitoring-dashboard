@@ -54,6 +54,7 @@ public class DeviceController {
     @Operation(summary = "Create new device")
     @ApiResponse(responseCode = "200", description = "Device created")
     @ApiResponse(responseCode = "400", description = "Invalid input data")
+    @ApiResponse(responseCode = "409", description = "Device with this name already exists")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DeviceDTO> createDevice(@RequestBody @Valid CreateDeviceRequestDTO request) {
@@ -63,6 +64,7 @@ public class DeviceController {
     @Operation(summary = "Edit existing device")
     @ApiResponse(responseCode = "200", description = "Device edited")
     @ApiResponse(responseCode = "400", description = "Invalid input data")
+    @ApiResponse(responseCode = "409", description = "Device with this name already exists")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
