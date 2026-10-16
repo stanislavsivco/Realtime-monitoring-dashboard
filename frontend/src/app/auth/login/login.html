@@ -1,1 +1,20 @@
-<p>login works!</p>
+<div class="login-page">
+    <div class="login-box">
+        <div class="login-logo">RMD</div>
+        <div class="login-title">Sign in</div>
+
+        <label class="login-label" for="username">Username</label>
+        <input #usernameInput id="username" class="login-input" type="text" autocomplete="username">
+
+        <label class="login-label" for="password">Password</label>
+        <input #passwordInput id="password" class="login-input" type="password" autocomplete="current-password"
+            (keyup.enter)="onLogin(usernameInput.value, passwordInput.value)">
+
+        @if (errorMessage() !== '') {
+        <div class="login-error">{{ errorMessage() }}</div>
+        }
+
+        <button class="login-button" type="button" (click)="onLogin(usernameInput.value, passwordInput.value)">Sign
+            in</button>
+    </div>
+</div>
