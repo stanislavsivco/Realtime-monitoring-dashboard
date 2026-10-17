@@ -27,6 +27,7 @@ replay_pid*
 agent/__pycache__/
 agent/*.pyc
 agent/.device_id
+agent/.machine_id
 agent/.env
 agent/venv/
 

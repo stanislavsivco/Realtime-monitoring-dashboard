@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class AgentApiKeyFilter extends OncePerRequestFilter {
 
-    static final String HEADER = "X-Agent-Key";
+    public static final String HEADER = "X-Agent-Key";
     static final int MIN_KEY_BYTES = 32;
 
     private static final Set<String> PROTECTED_PATHS = Set.of(

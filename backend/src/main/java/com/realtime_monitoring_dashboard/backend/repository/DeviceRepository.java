@@ -12,5 +12,9 @@ import com.realtime_monitoring_dashboard.backend.model.Device;
 public interface DeviceRepository extends JpaRepository<Device, Long> {
     Optional<Device> findByName(String name);
 
+    boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
+
     List<Device> findBySimulatedTrue();
 }

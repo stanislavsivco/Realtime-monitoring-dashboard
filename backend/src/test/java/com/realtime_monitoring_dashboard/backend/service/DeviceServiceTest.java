@@ -3,9 +3,12 @@ package com.realtime_monitoring_dashboard.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -14,20 +17,26 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
+import com.realtime_monitoring_dashboard.backend.exception.DeviceNameAlreadyExistsException;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
+import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
+import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
+import com.realtime_monitoring_dashboard.backend.repository.ThresholdRepository;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -35,6 +44,12 @@ class DeviceServiceTest {
 
     @Mock
     private DeviceRepository deviceRepository;
+    @Mock
+    private MetricRepository metricRepository;
+    @Mock
+    private AlertRepository alertRepository;
+    @Mock
+    private ThresholdRepository thresholdRepository;
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
@@ -98,7 +113,7 @@ class DeviceServiceTest {
 
     @Test
     void createDeviceSavesAndBroadcasts() {
-        when(deviceRepository.save(any(Device.class))).thenAnswer(inv -> {
+        when(deviceRepository.saveAndFlush(any(Device.class))).thenAnswer(inv -> {
             Device d = inv.getArgument(0);
             d.setId(10L);
             return d;
@@ -108,7 +123,7 @@ class DeviceServiceTest {
                 new CreateDeviceRequestDTO("Router-1", "Router", "Kosice", DeviceStatus.WARNING));
 
         ArgumentCaptor<Device> saved = ArgumentCaptor.forClass(Device.class);
-        verify(deviceRepository).save(saved.capture());
+        verify(deviceRepository).saveAndFlush(saved.capture());
         assertThat(saved.getValue().getName()).isEqualTo("Router-1");
         assertThat(saved.getValue().getType()).isEqualTo("Router");
         assertThat(saved.getValue().getLocation()).isEqualTo("Kosice");
@@ -122,10 +137,36 @@ class DeviceServiceTest {
     }
 
     @Test
+    void createDeviceWithTakenNameThrowsConflictWithoutSaving() {
+        when(deviceRepository.existsByName("Router-1")).thenReturn(true);
+
+        DeviceNameAlreadyExistsException ex = assertThrows(DeviceNameAlreadyExistsException.class,
+                () -> deviceService.createDevice(
+                        new CreateDeviceRequestDTO("Router-1", "Router", "Kosice", DeviceStatus.ONLINE)));
+
+        assertThat(ex.getMessage()).contains("Router-1");
+        verify(deviceRepository, never()).saveAndFlush(any(Device.class));
+        verifyNoInteractions(messagingTemplate);
+    }
+
+    @Test
+    void createDeviceMapsConcurrentDuplicateToConflict() {
+        when(deviceRepository.existsByName("Router-1")).thenReturn(false);
+        when(deviceRepository.saveAndFlush(any(Device.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        assertThrows(DeviceNameAlreadyExistsException.class,
+                () -> deviceService.createDevice(
+                        new CreateDeviceRequestDTO("Router-1", "Router", "Kosice", DeviceStatus.ONLINE)));
+
+        verifyNoInteractions(messagingTemplate);
+    }
+
+    @Test
     void updateDeviceChangesFieldsAndBroadcasts() {
         Device existing = device(5L, "old-name", DeviceStatus.ONLINE);
         when(deviceRepository.findById(5L)).thenReturn(Optional.of(existing));
-        when(deviceRepository.save(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(deviceRepository.saveAndFlush(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
 
         DeviceDTO result = deviceService.updateDevice(5L,
                 new CreateDeviceRequestDTO("new-name", "Switch", "Bratislava", DeviceStatus.WARNING));
@@ -139,22 +180,70 @@ class DeviceServiceTest {
     }
 
     @Test
+    void updateDeviceKeepingOwnNameIsAllowed() {
+        Device existing = device(5L, "same-name", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(deviceRepository.existsByNameAndIdNot("same-name", 5L)).thenReturn(false);
+        when(deviceRepository.saveAndFlush(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        DeviceDTO result = deviceService.updateDevice(5L,
+                new CreateDeviceRequestDTO("same-name", "Switch", "Bratislava", DeviceStatus.ONLINE));
+
+        assertThat(result.getName()).isEqualTo("same-name");
+    }
+
+    @Test
+    void updateDeviceToNameOfAnotherDeviceThrowsConflict() {
+        Device existing = device(5L, "old-name", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(deviceRepository.existsByNameAndIdNot("taken", 5L)).thenReturn(true);
+
+        assertThrows(DeviceNameAlreadyExistsException.class, () -> deviceService.updateDevice(5L,
+                new CreateDeviceRequestDTO("taken", "Switch", "Bratislava", DeviceStatus.ONLINE)));
+
+        assertThat(existing.getName()).isEqualTo("old-name");
+        verify(deviceRepository, never()).saveAndFlush(any(Device.class));
+        verifyNoInteractions(messagingTemplate);
+    }
+
+    @Test
     void updateDeviceThrowsWhenMissing() {
         when(deviceRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> deviceService.updateDevice(99L,
                 new CreateDeviceRequestDTO("n", "t", "l", DeviceStatus.ONLINE)));
 
-        verify(deviceRepository, never()).save(any(Device.class));
+        verify(deviceRepository, never()).saveAndFlush(any(Device.class));
         verify(messagingTemplate, never()).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
     }
 
     @Test
-    void deleteDeviceCallsRepositoryAndBroadcasts() {
+    void deleteDeviceRemovesDependentRowsBeforeDeviceAndBroadcasts() {
+        Device existing = device(3L, "to-delete", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(3L)).thenReturn(Optional.of(existing));
+
         deviceService.deleteDevice(3L);
 
-        verify(deviceRepository).deleteById(3L);
-        verify(messagingTemplate).convertAndSend("/topic/devices/delete", 3L);
+        InOrder order = inOrder(metricRepository, alertRepository, thresholdRepository, deviceRepository, messagingTemplate);
+        order.verify(metricRepository).deleteByDeviceId(3L);
+        order.verify(alertRepository).deleteByDeviceId(3L);
+        order.verify(thresholdRepository).deleteByDeviceId(3L);
+        order.verify(deviceRepository).delete(existing);
+        order.verify(deviceRepository).flush();
+        order.verify(messagingTemplate).convertAndSend("/topic/devices/delete", 3L);
+    }
+
+    @Test
+    void deleteDeviceThrowsWhenMissingAndDoesNotBroadcast() {
+        when(deviceRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> deviceService.deleteDevice(99L));
+
+        verify(metricRepository, never()).deleteByDeviceId(anyLong());
+        verify(alertRepository, never()).deleteByDeviceId(anyLong());
+        verify(thresholdRepository, never()).deleteByDeviceId(anyLong());
+        verify(deviceRepository, never()).delete(any(Device.class));
+        verifyNoInteractions(messagingTemplate);
     }
 
     @Test
@@ -166,14 +255,14 @@ class DeviceServiceTest {
                 new RegisterAgentRequestDTO("web-01.local", "Server", "DC1"));
 
         assertThat(result.getId()).isEqualTo(7L);
-        verify(deviceRepository, never()).save(any(Device.class));
+        verify(deviceRepository, never()).saveAndFlush(any(Device.class));
         verify(messagingTemplate, never()).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
     }
 
     @Test
     void registerAgentCreatesNewDeviceWhenHostnameUnknown() {
         when(deviceRepository.findByName("new-agent")).thenReturn(Optional.empty());
-        when(deviceRepository.save(any(Device.class))).thenAnswer(inv -> {
+        when(deviceRepository.saveAndFlush(any(Device.class))).thenAnswer(inv -> {
             Device d = inv.getArgument(0);
             d.setId(42L);
             return d;
@@ -183,7 +272,7 @@ class DeviceServiceTest {
                 new RegisterAgentRequestDTO("new-agent", "Server", "DC2"));
 
         ArgumentCaptor<Device> captor = ArgumentCaptor.forClass(Device.class);
-        verify(deviceRepository).save(captor.capture());
+        verify(deviceRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getName()).isEqualTo("new-agent");
         assertThat(captor.getValue().getType()).isEqualTo("Server");
         assertThat(captor.getValue().getLocation()).isEqualTo("DC2");
@@ -197,13 +286,40 @@ class DeviceServiceTest {
     @Test
     void registerAgentFallsBackToDefaultsWhenTypeAndLocationMissing() {
         when(deviceRepository.findByName("bare-agent")).thenReturn(Optional.empty());
-        when(deviceRepository.save(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(deviceRepository.saveAndFlush(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
 
         deviceService.registerAgent(new RegisterAgentRequestDTO("bare-agent", null, null));
 
         ArgumentCaptor<Device> captor = ArgumentCaptor.forClass(Device.class);
-        verify(deviceRepository).save(captor.capture());
+        verify(deviceRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo("Agent");
         assertThat(captor.getValue().getLocation()).isEqualTo("Unknown");
+    }
+
+    @Test
+    void registerAgentReturnsDeviceCreatedByConcurrentRegistration() {
+        Device winner = device(50L, "race-agent", DeviceStatus.ONLINE);
+        when(deviceRepository.findByName("race-agent"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winner));
+        when(deviceRepository.saveAndFlush(any(Device.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        DeviceDTO result = deviceService.registerAgent(new RegisterAgentRequestDTO("race-agent", null, null));
+
+        assertThat(result.getId()).isEqualTo(50L);
+        verifyNoInteractions(messagingTemplate);
+    }
+
+    @Test
+    void registerAgentRethrowsWhenSaveFailsForAnotherReason() {
+        when(deviceRepository.findByName("broken-agent")).thenReturn(Optional.empty());
+        when(deviceRepository.saveAndFlush(any(Device.class)))
+                .thenThrow(new DataIntegrityViolationException("other constraint"));
+
+        assertThrows(DataIntegrityViolationException.class,
+                () -> deviceService.registerAgent(new RegisterAgentRequestDTO("broken-agent", null, null)));
+
+        verifyNoInteractions(messagingTemplate);
     }
 }
