@@ -45,6 +45,10 @@
 - Agent API key and CORS hardening (branch 53_SecurityHardening):
   - AgentApiKeyFilter checks X-Agent-Key on /api/devices/register and /api/devices/ingest with constant-time comparison
   - CORS restricted to FRONTEND_ORIGIN instead of wildcard
+- Swagger authentication (branch 54_feature/device-delete-and-registration-fixes):
+  - OpenApiConfig adds bearerAuth (JWT) as the default requirement and agentKey (X-Agent-Key header) schemes, Authorize button in Swagger UI
+  - Auth endpoints marked as public, /api/devices/register and /api/devices/ingest marked with agentKey
+  - AgentApiKeyFilter.HEADER shared with the OpenAPI config, OpenApiConfigTest added
 - Neon connection (PR 42, branch 52-connection-to-Neon):
   - docker-compose.yml reads backend configuration from devops/.env (gitignored), connects to Neon
   - docker-compose.local-db.yml override for a local PostgreSQL container

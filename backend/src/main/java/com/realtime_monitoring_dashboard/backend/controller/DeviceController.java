@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.realtime_monitoring_dashboard.backend.config.OpenApiConfig;
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
@@ -22,6 +23,7 @@ import com.realtime_monitoring_dashboard.backend.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -86,6 +88,7 @@ public class DeviceController {
     @Operation(summary = "Register or re-identify an agent by hostname",
             description = "Returns existing device if hostname is already known, otherwise creates a new one")
     @ApiResponse(responseCode = "200", description = "Device registered or found")
+    @SecurityRequirement(name = OpenApiConfig.AGENT_KEY)
     @PostMapping("/register")
     public ResponseEntity<DeviceDTO> registerAgent(@RequestBody @Valid RegisterAgentRequestDTO request) {
         return ResponseEntity.ok(deviceService.registerAgent(request));
