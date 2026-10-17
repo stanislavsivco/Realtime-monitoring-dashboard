@@ -58,6 +58,7 @@ class AlertServiceTest {
     @Test
     void createAlertPersistsUnresolvedAlertWithGivenData() {
         Device device = device();
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         alertService.createAlert(device, AlertSeverity.WARNING, "Disk almost full");
 
@@ -70,6 +71,43 @@ class AlertServiceTest {
         assertThat(saved.isResolved()).isFalse();
         assertThat(saved.isAcknowledged()).isFalse();
         assertThat(saved.getTimestamp()).isNotNull();
+    }
+
+    @Test
+    void createAlertBroadcastsNewAlert() {
+        Device device = device();
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        alertService.createAlert(device, AlertSeverity.CRITICAL, "CPU too high");
+
+        ArgumentCaptor<AlertDTO> captor = ArgumentCaptor.forClass(AlertDTO.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/alerts"), captor.capture());
+        assertThat(captor.getValue().getDeviceId()).isEqualTo(1L);
+        assertThat(captor.getValue().getSeverity()).isEqualTo(AlertSeverity.CRITICAL);
+        assertThat(captor.getValue().isResolved()).isFalse();
+    }
+
+    @Test
+    void createAlertSkipsWhenActiveAlertWithSameSeverityExists() {
+        Device device = device();
+        when(alertRepository.existsByDeviceIdAndSeverityAndResolvedFalse(1L, AlertSeverity.CRITICAL)).thenReturn(true);
+
+        alertService.createAlert(device, AlertSeverity.CRITICAL, "CPU too high");
+
+        verify(alertRepository, never()).save(any(Alert.class));
+        verify(messagingTemplate, never()).convertAndSend(eq("/topic/alerts"), any(AlertDTO.class));
+    }
+
+    @Test
+    void createAlertCreatesNewAlertWhenOnlyDifferentSeverityIsActive() {
+        Device device = device();
+        when(alertRepository.existsByDeviceIdAndSeverityAndResolvedFalse(1L, AlertSeverity.WARNING)).thenReturn(true);
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        alertService.createAlert(device, AlertSeverity.CRITICAL, "CPU too high");
+
+        verify(alertRepository).save(any(Alert.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/alerts"), any(AlertDTO.class));
     }
 
     @Test

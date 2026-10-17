@@ -1,0 +1,96 @@
+:host {
+    display: block;
+}
+
+.alerts-page {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg);
+    flex-direction: column;
+    padding: 24px 32px;
+    gap: 16px;
+}
+
+.alerts-header {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.back-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.alerts-title {
+    margin: 0;
+    font-size: 1.4rem;
+    color: var(--text);
+}
+
+.alerts-error {
+    color: #dc2626;
+    font-size: 0.85rem;
+}
+
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    border-radius: 12px;
+}
+
+.alert-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.alert-severity {
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 999px;
+}
+
+.alert-severity.warning {
+    color: var(--warn);
+    background-color: var(--bg);
+}
+
+.alert-severity.critical {
+    color: var(--crit);
+    background-color: var(--bg);
+}
+
+.alert-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.alert-message {
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.alert-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.alert-state {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.alerts-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-faint);
+}

@@ -49,6 +49,10 @@
   - docker-compose.yml reads backend configuration from devops/.env (gitignored), connects to Neon
   - docker-compose.local-db.yml override for a local PostgreSQL container
   - Fake metric generator interval changed from 5 s to 10 s
+- Alert fixes:
+  - findAlertsFiltered typo fixed, GET /api/alerts without a severity filter no longer returns an empty page
+  - createAlert skips duplicates (unresolved alert with the same severity for the device) and broadcasts new alerts to /topic/alerts
+  - AlertServiceTest extended
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk

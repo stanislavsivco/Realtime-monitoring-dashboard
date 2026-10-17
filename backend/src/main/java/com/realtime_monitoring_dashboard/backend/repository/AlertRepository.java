@@ -18,9 +18,11 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
 
     List<Alert> findByDeviceIdAndResolvedFalse(Long deviceId);
 
+    boolean existsByDeviceIdAndSeverityAndResolvedFalse(Long deviceId, AlertSeverity severity);
+
     @Query ("SELECT a FROM Alert a WHERE " + 
     "(:resolved IS NULL OR a.resolved = :resolved) AND " +
-    "(severity IS NULL OR a.severity = :severity)")
+    "(:severity IS NULL OR a.severity = :severity)")
     Page<Alert> findAlertsFiltered(
     @Param ("resolved") Boolean resolved,
     @Param ("severity") AlertSeverity severity,
