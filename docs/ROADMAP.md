@@ -45,10 +45,23 @@
 - Agent API key and CORS hardening (branch 53_SecurityHardening):
   - AgentApiKeyFilter checks X-Agent-Key on /api/devices/register and /api/devices/ingest with constant-time comparison
   - CORS restricted to FRONTEND_ORIGIN instead of wildcard
+- Swagger authentication (branch 54_feature/device-delete-and-registration-fixes):
+  - OpenApiConfig adds bearerAuth (JWT) as the default requirement and agentKey (X-Agent-Key header) schemes, Authorize button in Swagger UI
+  - Auth endpoints marked as public, /api/devices/register and /api/devices/ingest marked with agentKey
+  - AgentApiKeyFilter.HEADER shared with the OpenAPI config, OpenApiConfigTest added
 - Neon connection (PR 42, branch 52-connection-to-Neon):
   - docker-compose.yml reads backend configuration from devops/.env (gitignored), connects to Neon
   - docker-compose.local-db.yml override for a local PostgreSQL container
   - Fake metric generator interval changed from 5 s to 10 s
+- Device delete and registration fixes (branch 54_feature/device-delete-and-registration-fixes):
+  - Deleting a device removes its metrics, alerts and threshold first (bulk JPQL deletes in one transaction), previously failed on foreign keys
+  - Deleting a non-existent device returns 404 and no WebSocket event is sent
+  - Device name is unique (DB constraint + service check), duplicates return 409 (DeviceNameAlreadyExistsException)
+  - Concurrent agent registration with the same hostname returns the existing device instead of creating a duplicate
+  - DataIntegrityViolationException mapped to 409 in GlobalExceptionHandler without leaking DB details
+  - Agent re-registers automatically when its cached device ID returns 404
+  - agent/.machine_id removed from Git and added to .gitignore
+  - H2 test dependency and DeviceServiceIntegrationTest (real database checks for delete, unique name, registration)
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
@@ -63,7 +76,9 @@
 - Predictive trend engine
 - Simulation mode: smooth random-walk metrics with scripted incidents, SIMULATION_ENABLED switch, retention cleanup, "Simulated" badge in the UI
 - Deployment (Render, later Oracle Cloud or Azure) with environment variables
-- Database migrations (Flyway) instead of ddl-auto update, including a unique index on lower(username)
+- Database migrations (Flyway) instead of ddl-auto update, including a unique index on lower(username) and unique devices.name (ddl-auto skips the constraint silently if duplicate names already exist)
+- Check AlertRepository.findAlertsFiltered: the severity condition uses "severity IS NULL" instead of ":severity IS NULL"
+- Device API consistency: POST /api/devices should return 201 Created
 
 ## Ideas
 - (add new ideas here)

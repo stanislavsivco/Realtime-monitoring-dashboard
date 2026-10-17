@@ -6,6 +6,7 @@ import com.realtime_monitoring_dashboard.backend.dto.RegisterRequestDTO;
 import com.realtime_monitoring_dashboard.backend.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@SecurityRequirements
 @Tag(name = "Auth", description = "Registration and login")
 public class AuthController {
 

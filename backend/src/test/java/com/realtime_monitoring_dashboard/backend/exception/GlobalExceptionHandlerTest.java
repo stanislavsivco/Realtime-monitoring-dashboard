@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -40,6 +41,24 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(400);
         assertThat(response.getBody().getMessage()).isEqualTo("getDeviceByID.id: must be greater than 0");
+    }
+
+    @Test
+    void dataIntegrityViolationBecomes409WithoutLeakingDatabaseDetails() {
+        ResponseEntity<ErrorResponse> response = handler.handleDataIntegrityViolation(
+                new DataIntegrityViolationException("violates foreign key constraint fk_secret_table"), request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(409);
+        assertThat(response.getBody().getMessage()).doesNotContain("fk_secret_table");
+    }
+
+    @Test
+    void deviceNameAlreadyExistsBecomes409() {
+        ResponseEntity<ErrorResponse> response = handler.handleDeviceNameExists(
+                new DeviceNameAlreadyExistsException("Device with name 'x' already exists"), request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(409);
+        assertThat(response.getBody().getMessage()).isEqualTo("Device with name 'x' already exists");
     }
 
     @Test

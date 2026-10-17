@@ -7,6 +7,7 @@ import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,7 +19,7 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
 
     List<Alert> findByDeviceIdAndResolvedFalse(Long deviceId);
 
-    @Query ("SELECT a FROM Alert a WHERE " + 
+    @Query ("SELECT a FROM Alert a WHERE " +
     "(:resolved IS NULL OR a.resolved = :resolved) AND " +
     "(severity IS NULL OR a.severity = :severity)")
     Page<Alert> findAlertsFiltered(
@@ -26,4 +27,8 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     @Param ("severity") AlertSeverity severity,
     Pageable pageable
     );
+
+    @Modifying
+    @Query("DELETE FROM Alert a WHERE a.device.id = :deviceId")
+    int deleteByDeviceId(@Param("deviceId") Long deviceId);
 }

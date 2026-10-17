@@ -1,6 +1,7 @@
 package com.realtime_monitoring_dashboard.backend.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
+import com.realtime_monitoring_dashboard.backend.exception.DeviceNameAlreadyExistsException;
 import com.realtime_monitoring_dashboard.backend.exception.GlobalExceptionHandler;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
@@ -174,6 +176,26 @@ class DeviceControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(deviceService).deleteDevice(3L);
+    }
+
+    @Test
+    void deleteDeviceReturns404WhenMissing() throws Exception {
+        doThrow(new ResourceNotFoundException("Device with ID 99 does not exist"))
+                .when(deviceService).deleteDevice(99L);
+
+        mockMvc.perform(delete("/api/devices/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Device with ID 99 does not exist"));
+    }
+
+    @Test
+    void createDeviceWithTakenNameReturns409() throws Exception {
+        when(deviceService.createDevice(any(CreateDeviceRequestDTO.class)))
+                .thenThrow(new DeviceNameAlreadyExistsException("Device with name 'Server-1' already exists"));
+
+        mockMvc.perform(post("/api/devices").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Device with name 'Server-1' already exists"));
     }
 
     @Test

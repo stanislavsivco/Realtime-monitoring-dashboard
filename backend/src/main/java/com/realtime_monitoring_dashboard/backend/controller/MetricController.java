@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.realtime_monitoring_dashboard.backend.config.OpenApiConfig;
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
 import com.realtime_monitoring_dashboard.backend.service.MetricService;
@@ -25,6 +26,7 @@ import com.realtime_monitoring_dashboard.backend.service.MetricService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -68,6 +70,7 @@ public class MetricController {
         return ResponseEntity.ok(metricService.getMetricSummary(id, startDate, endDate));
     }
 
+    @SecurityRequirement(name = OpenApiConfig.AGENT_KEY)
     @PostMapping("/ingest")
     public ResponseEntity<Void> ingestMetric(@Valid @RequestBody MetricDTO dto) {
         metricService.saveMetric(dto);
