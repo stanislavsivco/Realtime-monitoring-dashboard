@@ -181,9 +181,7 @@ export class Dashboard implements OnInit, OnDestroy {
       list.push(device);
     }
     this.devices.set(list);
-    if (this.selectedDeviceId() === null) {
-      this.selectCategory(this.selectedCategory());
-    }
+    this.checkSelection();
   }
 
   private removeDevice(deviceId: number): void {
@@ -203,14 +201,29 @@ export class Dashboard implements OnInit, OnDestroy {
     this.deviceService.getDevices().subscribe({
       next: (deviceList) => {
         this.devices.set(deviceList);
-        if (this.selectedDeviceId() === null) {
-          this.selectCategory(this.selectedCategory());
-        }
+        this.checkSelection();
       },
       error: (err) => {
         console.error('Couldnt reload the devices', err);
       }
     });
+  }
+
+  private checkSelection(): void {
+    const selectedId = this.selectedDeviceId();
+    if (selectedId === null) {
+      this.selectCategory(this.selectedCategory());
+      return;
+    }
+    let stillVisible = false;
+    for (const device of this.visibleDevices()) {
+      if (device.id === selectedId) {
+        stillVisible = true;
+      }
+    }
+    if (!stillVisible) {
+      this.selectCategory(this.selectedCategory());
+    }
   }
 
   ngOnDestroy(): void {
