@@ -1,1 +1,36 @@
-<p>alerts works!</p>
+<div class="alerts-page">
+
+    <div class="alerts-header">
+        <a class="back-link" routerLink="/dashboard">&larr; Dashboard</a>
+        <h1 class="alerts-title">Alerts</h1>
+    </div>
+
+    @if (errorMessage() !== '') {
+    <div class="alerts-error">{{ errorMessage() }}</div>
+    }
+
+    <div class="alerts-list">
+        @for (item of alerts(); track item.id) {
+        <div class="alert-row">
+            <span class="alert-severity {{ getSeverityClass(item.severity) }}">{{ item.severity }}</span>
+            <div class="alert-info">
+                <div class="alert-message">{{ item.message }}</div>
+                <div class="alert-meta">{{ item.deviceName }} &middot; {{ item.timestamp | date:'dd.MM.yyyy HH:mm:ss' }}
+                </div>
+            </div>
+            <div class="alert-state">
+                @if (item.resolved) {
+                <span>Resolved</span>
+                } @else if (item.acknowledged) {
+                <span>Acknowledged</span>
+                } @else {
+                <span>New</span>
+                }
+            </div>
+        </div>
+        } @empty {
+        <div class="alerts-empty">No alerts found</div>
+        }
+    </div>
+
+</div>

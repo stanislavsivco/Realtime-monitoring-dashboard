@@ -62,6 +62,10 @@
   - Agent re-registers automatically when its cached device ID returns 404
   - agent/.machine_id removed from Git and added to .gitignore
   - H2 test dependency and DeviceServiceIntegrationTest (real database checks for delete, unique name, registration)
+- Alert fixes:
+  - findAlertsFiltered typo fixed, GET /api/alerts without a severity filter no longer returns an empty page
+  - createAlert skips duplicates (unresolved alert with the same severity for the device) and broadcasts new alerts to /topic/alerts
+  - AlertServiceTest extended
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk

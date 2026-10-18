@@ -26,6 +26,10 @@ public class AlertService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public void createAlert(Device device, AlertSeverity severity, String message) {
+        if (alertRepository.existsByDeviceIdAndSeverityAndResolvedFalse(device.getId(), severity)) {
+            return;
+        }
+
         Alert alert = Alert.builder()
                 .device(device)
                 .severity(severity)
@@ -33,7 +37,8 @@ public class AlertService {
                 .timestamp(LocalDateTime.now())
                 .resolved(false)
                 .build();
-        alertRepository.save(alert);
+        AlertDTO dto = mapToDTO(alertRepository.save(alert));
+        messagingTemplate.convertAndSend("/topic/alerts", dto);
     }
 
     public List<AlertDTO> getActiveAlerts() {
