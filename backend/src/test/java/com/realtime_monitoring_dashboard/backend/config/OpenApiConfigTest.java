@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import com.realtime_monitoring_dashboard.backend.controller.AuthController;
 import com.realtime_monitoring_dashboard.backend.controller.DeviceController;
 import com.realtime_monitoring_dashboard.backend.controller.MetricController;
-import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
+import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -56,7 +56,7 @@ class OpenApiConfigTest {
     @Test
     void agentEndpointsRequireAgentKey() throws NoSuchMethodException {
         Method register = DeviceController.class.getMethod("registerAgent", RegisterAgentRequestDTO.class);
-        Method ingest = MetricController.class.getMethod("ingestMetric", MetricDTO.class);
+        Method ingest = MetricController.class.getMethod("ingestMetric", IngestMetricRequestDTO.class);
 
         assertThat(register.getAnnotation(SecurityRequirement.class).name()).isEqualTo(OpenApiConfig.AGENT_KEY);
         assertThat(ingest.getAnnotation(SecurityRequirement.class).name()).isEqualTo(OpenApiConfig.AGENT_KEY);

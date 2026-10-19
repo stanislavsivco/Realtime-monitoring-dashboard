@@ -16,7 +16,7 @@ public class DeviceStatusCalculator {
     private final ThresholdService thresholdService;
 
     public DeviceStatus calculate(Device device, Metric metric) {
-        Threshold threshold = thresholdService.getOrCreateDefaultForDevice(device.getId());
+        Threshold threshold = thresholdService.getEffectiveThreshold(device.getId());
 
         if (isCritical(metric, threshold)) {
             return DeviceStatus.CRITICAL;

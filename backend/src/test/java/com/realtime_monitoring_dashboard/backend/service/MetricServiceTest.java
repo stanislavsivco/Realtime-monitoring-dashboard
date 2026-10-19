@@ -33,6 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
+import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
@@ -82,9 +83,8 @@ class MetricServiceTest {
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
-        LocalDateTime timestamp = LocalDateTime.of(2026, 9, 1, 12, 0);
 
-        MetricDTO input = MetricDTO.builder().deviceId(1L).timestamp(timestamp)
+        IngestMetricRequestDTO input = IngestMetricRequestDTO.builder().deviceId(1L)
                 .cpu(45.5).ram(60.0).disk(30.0).latencyMs(20)
                 .networkInMbps(123.4).networkOutMbps(56.7).build();
 
@@ -97,7 +97,6 @@ class MetricServiceTest {
         assertThat(saved.getCpu()).isEqualTo(45.5);
         assertThat(saved.getNetworkInMbps()).isEqualTo(123.4);
         assertThat(saved.getNetworkOutMbps()).isEqualTo(56.7);
-        assertThat(saved.getTimestamp()).isEqualTo(timestamp);
 
         assertThat(result.getDeviceId()).isEqualTo(1L);
         assertThat(result.getNetworkInMbps()).isEqualTo(123.4);
@@ -105,13 +104,13 @@ class MetricServiceTest {
     }
 
     @Test
-    void saveMetricUsesCurrentTimeWhenTimestampMissing() {
+    void saveMetricAlwaysUsesServerTime() {
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device(1L, "Server-1", DeviceStatus.ONLINE)));
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
         LocalDateTime before = LocalDateTime.now();
 
-        metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
 
         ArgumentCaptor<Metric> captor = ArgumentCaptor.forClass(Metric.class);
         verify(metricRepository).save(captor.capture());
@@ -122,7 +121,7 @@ class MetricServiceTest {
     void saveMetricThrowsNotFoundWhenDeviceMissing() {
         when(deviceRepository.findById(99L)).thenReturn(Optional.empty());
 
-        MetricDTO input = MetricDTO.builder().deviceId(99L).cpu(10.0).ram(10.0).disk(10.0).build();
+        IngestMetricRequestDTO input = IngestMetricRequestDTO.builder().deviceId(99L).cpu(10.0).ram(10.0).disk(10.0).build();
         ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
                 () -> metricService.saveMetric(input));
 
@@ -137,7 +136,7 @@ class MetricServiceTest {
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
         stubSavesToEchoArguments();
 
-        metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(95.0).ram(50.0).disk(50.0).build());
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(95.0).ram(50.0).disk(50.0).build());
 
         verify(alertService).resolveActiveAlertsForDevice(same(device));
         verify(alertService).createAlert(same(device), eq(AlertSeverity.CRITICAL), contains("Server-1"));
@@ -151,7 +150,7 @@ class MetricServiceTest {
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.WARNING);
         stubSavesToEchoArguments();
 
-        metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(80.0).ram(50.0).disk(50.0).build());
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(80.0).ram(50.0).disk(50.0).build());
 
         verify(alertService).resolveActiveAlertsForDevice(same(device));
         verify(alertService).createAlert(same(device), eq(AlertSeverity.WARNING), anyString());
@@ -165,7 +164,7 @@ class MetricServiceTest {
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
 
-        metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
 
         verify(alertService).resolveActiveAlertsForDevice(same(device));
         verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), anyString());
@@ -179,7 +178,7 @@ class MetricServiceTest {
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
         stubSavesToEchoArguments();
 
-        metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
 
         verify(alertService, never()).resolveActiveAlertsForDevice(any(Device.class));
         verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), anyString());
@@ -192,7 +191,7 @@ class MetricServiceTest {
         when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
         stubSavesToEchoArguments();
 
-        metricService.saveMetric(MetricDTO.builder().deviceId(1L).cpu(95.0).ram(50.0).disk(50.0).build());
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(95.0).ram(50.0).disk(50.0).build());
 
         verify(alertService, never()).resolveActiveAlertsForDevice(any(Device.class));
         verify(alertService).createAlert(same(device), eq(AlertSeverity.CRITICAL), anyString());
@@ -427,5 +426,77 @@ class MetricServiceTest {
 
         verify(alertService).createAlert(same(device), eq(AlertSeverity.CRITICAL), anyString());
         assertThat(device.getStatus()).isEqualTo(DeviceStatus.CRITICAL);
+    }
+
+    @Test
+    void statusChangeIsBroadcastToDevicesTopic() {
+        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.WARNING);
+        stubSavesToEchoArguments();
+
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(80.0).ram(50.0).disk(50.0).build());
+
+        ArgumentCaptor<DeviceDTO> captor = ArgumentCaptor.forClass(DeviceDTO.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/devices"), captor.capture());
+        assertThat(captor.getValue().getId()).isEqualTo(1L);
+        assertThat(captor.getValue().getStatus()).isEqualTo(DeviceStatus.WARNING);
+    }
+
+    @Test
+    void offlineDeviceComingBackIsBroadcastAsOnline() {
+        Device device = device(1L, "Server-1", DeviceStatus.OFFLINE);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        stubSavesToEchoArguments();
+
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
+
+        ArgumentCaptor<DeviceDTO> captor = ArgumentCaptor.forClass(DeviceDTO.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/devices"), captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(DeviceStatus.ONLINE);
+    }
+
+    @Test
+    void unchangedStatusIsNotBroadcastToDevicesTopic() {
+        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        stubSavesToEchoArguments();
+
+        metricService.saveMetric(IngestMetricRequestDTO.builder().deviceId(1L).cpu(10.0).ram(10.0).disk(10.0).build());
+
+        verify(messagingTemplate, never()).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
+    }
+
+    @Test
+    void pagedMetricsRejectStartAfterEnd() {
+        LocalDateTime start = LocalDateTime.of(2026, 9, 30, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 9, 1, 0, 0);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> metricService.getMetricsByDeviceIdPaged(1L, start, end, PageRequest.of(0, 20)));
+
+        verify(metricRepository, never()).findByDeviceIdAndTimestampBetween(
+                any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class));
+    }
+
+    @Test
+    void summaryRejectsStartAfterEnd() {
+        LocalDateTime start = LocalDateTime.of(2026, 9, 30, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 9, 1, 0, 0);
+
+        assertThrows(IllegalArgumentException.class, () -> metricService.getMetricSummary(1L, start, end));
+
+        verify(metricRepository, never()).getMetricSummary(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class));
+    }
+
+    @Test
+    void summaryWithOnlyEndDateUsesSevenDaysBeforeIt() {
+        LocalDateTime end = LocalDateTime.of(2026, 9, 30, 0, 0);
+
+        metricService.getMetricSummary(1L, null, end);
+
+        verify(metricRepository).getMetricSummary(1L, end.minusDays(7), end);
     }
 }

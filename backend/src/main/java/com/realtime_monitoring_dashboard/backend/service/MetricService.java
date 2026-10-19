@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
+import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
@@ -30,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class MetricService {
 
     private static final int OFFLINE_THRESHOLD_SECONDS = 30;
+    private static final int DEFAULT_SUMMARY_DAYS = 7;
 
     private final MetricRepository metricRepository;
     private final DeviceRepository deviceRepository;
@@ -39,17 +41,17 @@ public class MetricService {
     private final Random random = new Random();
 
     @Transactional
-    public MetricDTO saveMetric(MetricDTO dto) {
-        Device device = deviceRepository.findById(dto.getDeviceId())
+    public MetricDTO saveMetric(IngestMetricRequestDTO request) {
+        Device device = deviceRepository.findById(request.getDeviceId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Device not found with id: " + dto.getDeviceId()));
-        return persistMetric(device, dto);
+                        "Device not found with id: " + request.getDeviceId()));
+        return persistMetric(device, request);
     }
 
     @Scheduled(fixedRate = 10000)
     public void autoGenerateMetrics() {
         for (Device device : deviceRepository.findBySimulatedTrue()) {
-            MetricDTO dto = MetricDTO.builder()
+            IngestMetricRequestDTO request = IngestMetricRequestDTO.builder()
                     .deviceId(device.getId())
                     .cpu(round2(10 + random.nextDouble() * 85))
                     .ram(round2(20 + random.nextDouble() * 75))
@@ -58,20 +60,20 @@ public class MetricService {
                     .networkInMbps(round2(random.nextDouble() * 500))
                     .networkOutMbps(round2(random.nextDouble() * 500))
                     .build();
-            saveMetric(dto);
+            saveMetric(request);
         }
     }
 
-    private MetricDTO persistMetric(Device device, MetricDTO dto) {
+    private MetricDTO persistMetric(Device device, IngestMetricRequestDTO request) {
         Metric metric = Metric.builder()
                 .device(device)
-                .cpu(dto.getCpu())
-                .ram(dto.getRam())
-                .disk(dto.getDisk())
-                .latencyMs(dto.getLatencyMs())
-                .networkInMbps(dto.getNetworkInMbps())
-                .networkOutMbps(dto.getNetworkOutMbps())
-                .timestamp(dto.getTimestamp() != null ? dto.getTimestamp() : LocalDateTime.now())
+                .cpu(request.getCpu())
+                .ram(request.getRam())
+                .disk(request.getDisk())
+                .latencyMs(request.getLatencyMs())
+                .networkInMbps(request.getNetworkInMbps())
+                .networkOutMbps(request.getNetworkOutMbps())
+                .timestamp(LocalDateTime.now())
                 .build();
 
         applyStatusAndAlerts(device, metric);
@@ -91,8 +93,9 @@ public class MetricService {
     private void applyStatusAndAlerts(Device device, Metric metric) {
         DeviceStatus newStatus = statusCalculator.calculate(device, metric);
         DeviceStatus previousStatus = device.getStatus();
+        boolean statusChanged = newStatus != previousStatus;
 
-        if (newStatus != previousStatus) {
+        if (statusChanged) {
             alertService.resolveActiveAlertsForDevice(device);
         }
 
@@ -103,7 +106,11 @@ public class MetricService {
         }
 
         device.setStatus(newStatus);
-        deviceRepository.save(device);
+        Device savedDevice = deviceRepository.save(device);
+
+        if (statusChanged) {
+            messagingTemplate.convertAndSend("/topic/devices", mapDeviceToDTO(savedDevice));
+        }
     }
 
     private String buildAlertMessage(Device device, Metric metric) {
@@ -158,6 +165,7 @@ public class MetricService {
             Pageable pageable) {
 
         if (startDate != null && endDate != null) {
+            validateInterval(startDate, endDate);
             return metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable)
                     .map(this::mapToDTO);
         }
@@ -165,10 +173,17 @@ public class MetricService {
     }
 
     public MetricSummaryDTO getMetricSummary(Long deviceId, LocalDateTime startDate, LocalDateTime endDate) {
-        if (startDate == null) startDate = LocalDateTime.now().minusDays(7);
-        if (endDate == null) endDate = LocalDateTime.now();
+        LocalDateTime end = endDate != null ? endDate : LocalDateTime.now();
+        LocalDateTime start = startDate != null ? startDate : end.minusDays(DEFAULT_SUMMARY_DAYS);
+        validateInterval(start, end);
 
-        return metricRepository.getMetricSummary(deviceId, startDate, endDate);
+        return metricRepository.getMetricSummary(deviceId, start, end);
+    }
+
+    private void validateInterval(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("startDate must not be after endDate");
+        }
     }
 
     private MetricDTO mapToDTO(Metric metric) {

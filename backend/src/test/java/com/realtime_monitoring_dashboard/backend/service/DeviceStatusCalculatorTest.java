@@ -48,7 +48,7 @@ class DeviceStatusCalculatorTest {
     }
 
     private void stubDefaultThresholdFor(Long deviceId) {
-        when(thresholdService.getOrCreateDefaultForDevice(deviceId)).thenReturn(defaultThreshold());
+        when(thresholdService.getEffectiveThreshold(deviceId)).thenReturn(defaultThreshold());
     }
 
     @ParameterizedTest(name = "cpu={0} ram={1} disk={2} latency={3} -> {4}")
@@ -98,7 +98,7 @@ class DeviceStatusCalculatorTest {
 
         calculator.calculate(device, metric(10, 10, 10, 10));
 
-        verify(thresholdService).getOrCreateDefaultForDevice(42L);
+        verify(thresholdService).getEffectiveThreshold(42L);
     }
 
     @Test
@@ -110,7 +110,7 @@ class DeviceStatusCalculatorTest {
                 .diskWarning(75.0).diskCritical(90.0)
                 .latencyWarningMs(200).latencyCriticalMs(500)
                 .build();
-        when(thresholdService.getOrCreateDefaultForDevice(1L)).thenReturn(strict);
+        when(thresholdService.getEffectiveThreshold(1L)).thenReturn(strict);
 
         assertThat(calculator.calculate(device, metric(65.0, 10, 10, 10))).isEqualTo(DeviceStatus.CRITICAL);
     }

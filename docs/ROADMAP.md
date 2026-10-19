@@ -66,6 +66,15 @@
   - findAlertsFiltered typo fixed, GET /api/alerts without a severity filter no longer returns an empty page
   - createAlert skips duplicates (unresolved alert with the same severity for the device) and broadcasts new alerts to /topic/alerts
   - AlertServiceTest extended
+- Metric ingest validation and live device status (branch 56_feature/metric-ingest-validation):
+  - New IngestMetricRequestDTO for /api/devices/ingest: deviceId required, cpu, ram and disk required between 0 and 100, latency and network not negative (400 with fieldErrors)
+  - Metric timestamp always set by the server, a client timestamp is ignored (a wrong agent clock can no longer block OFFLINE detection)
+  - Device status changes (ONLINE, WARNING, CRITICAL, back from OFFLINE) are broadcast to /topic/devices
+  - startDate after endDate returns 400 for metric history and analytics, analytics with only endDate uses the 7 days before it
+  - Reading thresholds no longer writes to the database, defaults are returned until an admin saves custom values
+  - Device name, type, location and agent hostname limited to 255 characters (400 instead of a database error)
+  - Swagger descriptions for metric history, analytics and ingest
+  - ThresholdServiceTest added, metric, controller and DTO tests extended
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
@@ -74,14 +83,15 @@
 - devops/.env.example documenting required variables for docker-compose (JWT_SECRET, AGENT_API_KEY of 32+ bytes, ADMIN_*, FRONTEND_ORIGIN, DB_*)
 - Swagger disabled in production via SWAGGER_ENABLED switch
 - Rate limiting for /api/auth/login and /api/auth/register (brute-force protection)
-- STOMP authentication for /ws
+- WebSocket authentication and origin restriction: /ws allows any origin and needs no login, restrict to FRONTEND_ORIGIN and require the JWT in the STOMP CONNECT frame (frontend must send the token)
+- Metric retention and simulation switch: scheduled cleanup of old metrics (METRIC_RETENTION_DAYS), DataSeeder and fake metric generator controlled by an environment variable so production never gets demo devices
+- Recalculate device status right after an admin changes thresholds (now it updates with the next metric)
 - Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
 - Frontend: login, role-aware UI, threshold management, analytics
 - Predictive trend engine
 - Simulation mode: smooth random-walk metrics with scripted incidents, SIMULATION_ENABLED switch, retention cleanup, "Simulated" badge in the UI
 - Deployment (Render, later Oracle Cloud or Azure) with environment variables
 - Database migrations (Flyway) instead of ddl-auto update, including a unique index on lower(username) and unique devices.name (ddl-auto skips the constraint silently if duplicate names already exist)
-- Check AlertRepository.findAlertsFiltered: the severity condition uses "severity IS NULL" instead of ":severity IS NULL"
 - Device API consistency: POST /api/devices should return 201 Created
 
 ## Ideas

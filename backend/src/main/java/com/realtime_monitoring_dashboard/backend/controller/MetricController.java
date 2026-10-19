@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.realtime_monitoring_dashboard.backend.config.OpenApiConfig;
+import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
 import com.realtime_monitoring_dashboard.backend.service.MetricService;
@@ -41,6 +42,10 @@ public class MetricController {
 
     private final MetricService metricService;
 
+    @Operation(summary = "Metric history of a device",
+            description = "Paged, newest first. Optional startDate and endDate filter the time interval")
+    @ApiResponse(responseCode = "200", description = "Page of metrics returned")
+    @ApiResponse(responseCode = "400", description = "startDate is after endDate")
     @GetMapping("/{id}/metrics")
     public ResponseEntity<Page<MetricDTO>> getMetricsByDeviceId(
             @Parameter(description = "Device ID") @PathVariable @Positive Long id,
@@ -56,24 +61,35 @@ public class MetricController {
     @Operation(summary = "Newest device metric")
     @ApiResponse(responseCode = "200", description = "Metric found")
     @ApiResponse(responseCode = "404", description = "Device does not have any metrics or does not exist")
-    @GetMapping("/{deviceId}/metrics/latest")
-    public ResponseEntity<MetricDTO> getLatestMetric(@Parameter(description = "Device ID") @PathVariable @Positive Long deviceId) {
-        return ResponseEntity.ok(metricService.getLatestMetricByDeviceId(deviceId));
+    @GetMapping("/{id}/metrics/latest")
+    public ResponseEntity<MetricDTO> getLatestMetric(@Parameter(description = "Device ID") @PathVariable @Positive Long id) {
+        return ResponseEntity.ok(metricService.getLatestMetricByDeviceId(id));
     }
 
+    @Operation(summary = "Metric summary of a device",
+            description = "Average, maximum and minimum values. Defaults to the last 7 days")
+    @ApiResponse(responseCode = "200", description = "Summary returned")
+    @ApiResponse(responseCode = "400", description = "startDate is after endDate")
     @GetMapping("/{id}/analytics")
     public ResponseEntity<MetricSummaryDTO> getDeviceAnalytics(
-            @PathVariable @Positive Long id,
+            @Parameter(description = "Device ID") @PathVariable @Positive Long id,
+            @Parameter(description = "Start of time interval")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @Parameter(description = "End of time interval")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
 
         return ResponseEntity.ok(metricService.getMetricSummary(id, startDate, endDate));
     }
 
+    @Operation(summary = "Ingest a metric from an agent",
+            description = "The server sets the timestamp. cpu, ram and disk are percentages between 0 and 100")
+    @ApiResponse(responseCode = "201", description = "Metric stored")
+    @ApiResponse(responseCode = "400", description = "Invalid metric values")
+    @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @SecurityRequirement(name = OpenApiConfig.AGENT_KEY)
     @PostMapping("/ingest")
-    public ResponseEntity<Void> ingestMetric(@Valid @RequestBody MetricDTO dto) {
-        metricService.saveMetric(dto);
+    public ResponseEntity<Void> ingestMetric(@Valid @RequestBody IngestMetricRequestDTO request) {
+        metricService.saveMetric(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

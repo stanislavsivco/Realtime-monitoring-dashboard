@@ -3,6 +3,7 @@ package com.realtime_monitoring_dashboard.backend.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -17,6 +18,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricDTO;
 import com.realtime_monitoring_dashboard.backend.dto.MetricSummaryDTO;
 import com.realtime_monitoring_dashboard.backend.exception.GlobalExceptionHandler;
@@ -138,12 +142,12 @@ class MetricControllerTest {
         mockMvc.perform(post("/api/devices/ingest").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
 
-        verify(metricService).saveMetric(any(MetricDTO.class));
+        verify(metricService).saveMetric(any(IngestMetricRequestDTO.class));
     }
 
     @Test
     void ingestForUnknownDeviceReturns404() throws Exception {
-        when(metricService.saveMetric(any(MetricDTO.class)))
+        when(metricService.saveMetric(any(IngestMetricRequestDTO.class)))
                 .thenThrow(new ResourceNotFoundException("Device with ID 99 does not exist"));
         String body = """
                 {"deviceId": 99, "cpu": 10.0, "ram": 10.0, "disk": 10.0}
@@ -159,5 +163,56 @@ class MetricControllerTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(metricService);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "{\"cpu\": 10.0, \"ram\": 10.0, \"disk\": 10.0}                                   | deviceId",
+            "{\"deviceId\": 0, \"cpu\": 10.0, \"ram\": 10.0, \"disk\": 10.0}                  | deviceId",
+            "{\"deviceId\": 1, \"ram\": 10.0, \"disk\": 10.0}                                 | cpu",
+            "{\"deviceId\": 1, \"cpu\": -5.0, \"ram\": 10.0, \"disk\": 10.0}                  | cpu",
+            "{\"deviceId\": 1, \"cpu\": 100.1, \"ram\": 10.0, \"disk\": 10.0}                 | cpu",
+            "{\"deviceId\": 1, \"cpu\": 10.0, \"disk\": 10.0}                                 | ram",
+            "{\"deviceId\": 1, \"cpu\": 10.0, \"ram\": 250.0, \"disk\": 10.0}                 | ram",
+            "{\"deviceId\": 1, \"cpu\": 10.0, \"ram\": 10.0}                                  | disk",
+            "{\"deviceId\": 1, \"cpu\": 10.0, \"ram\": 10.0, \"disk\": -1.0}                  | disk",
+            "{\"deviceId\": 1, \"cpu\": 10.0, \"ram\": 10.0, \"disk\": 10.0, \"latencyMs\": -1} | latencyMs",
+            "{\"deviceId\": 1, \"cpu\": 10.0, \"ram\": 10.0, \"disk\": 10.0, \"networkInMbps\": -3.0} | networkInMbps",
+            "{\"deviceId\": 1, \"cpu\": 10.0, \"ram\": 10.0, \"disk\": 10.0, \"networkOutMbps\": -3.0} | networkOutMbps"
+    })
+    void ingestWithInvalidValueReturns400AndDoesNotSave(String body, String field) throws Exception {
+        mockMvc.perform(post("/api/devices/ingest").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors." + field).exists());
+
+        verifyNoInteractions(metricService);
+    }
+
+    @Test
+    void ingestAcceptsBoundaryValuesAndMissingOptionalFields() throws Exception {
+        String body = """
+                {"deviceId": 1, "cpu": 0.0, "ram": 100.0, "disk": 100.0,
+                 "latencyMs": null, "networkInMbps": null, "networkOutMbps": null}
+                """;
+
+        mockMvc.perform(post("/api/devices/ingest").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+
+        verify(metricService).saveMetric(any(IngestMetricRequestDTO.class));
+    }
+
+    @Test
+    void getMetricsWithStartAfterEndReturns400() throws Exception {
+        when(metricService.getMetricsByDeviceIdPaged(any(Long.class), any(LocalDateTime.class),
+                any(LocalDateTime.class), any(Pageable.class)))
+                .thenThrow(new IllegalArgumentException("startDate must not be after endDate"));
+
+        mockMvc.perform(get("/api/devices/1/metrics")
+                        .param("startDate", "2026-09-30T00:00:00")
+                        .param("endDate", "2026-09-01T00:00:00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("startDate must not be after endDate"));
+
+        verify(metricService, never()).getMetricSummary(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class));
     }
 }
