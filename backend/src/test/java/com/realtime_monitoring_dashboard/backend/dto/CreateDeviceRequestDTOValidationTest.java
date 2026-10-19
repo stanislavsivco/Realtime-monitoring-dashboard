@@ -65,4 +65,15 @@ class CreateDeviceRequestDTOValidationTest {
 
         assertThat(invalidProperties(dto)).containsExactly("status");
     }
+
+    @Test
+    void valuesLongerThanColumnAreRejectedAndMaxLengthIsAccepted() {
+        String tooLong = "x".repeat(256);
+        String maxLength = "x".repeat(255);
+
+        assertThat(invalidProperties(new CreateDeviceRequestDTO(tooLong, tooLong, tooLong, DeviceStatus.ONLINE)))
+                .containsExactlyInAnyOrder("name", "type", "location");
+        assertThat(validator.validate(new CreateDeviceRequestDTO(maxLength, maxLength, maxLength, DeviceStatus.ONLINE)))
+                .isEmpty();
+    }
 }

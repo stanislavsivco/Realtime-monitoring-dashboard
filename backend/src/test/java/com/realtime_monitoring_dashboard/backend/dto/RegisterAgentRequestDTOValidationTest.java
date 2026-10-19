@@ -53,4 +53,12 @@ class RegisterAgentRequestDTOValidationTest {
 
         assertThat(validator.validate(dto)).hasSize(1);
     }
+
+    @Test
+    void valuesLongerThanColumnAreRejected() {
+        String tooLong = "x".repeat(256);
+
+        assertThat(validator.validate(new RegisterAgentRequestDTO(tooLong, tooLong, tooLong))).hasSize(3);
+        assertThat(validator.validate(new RegisterAgentRequestDTO("x".repeat(255), null, null))).isEmpty();
+    }
 }
