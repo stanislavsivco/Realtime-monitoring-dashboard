@@ -3,6 +3,7 @@ import { Client } from '@stomp/stompjs';
 import { Subject } from 'rxjs';
 import { MetricDTO } from './metric.service';
 import { DeviceDTO } from './device.service';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -16,9 +17,13 @@ export class WebsocketService {
   private deletedDevicesSubject = new Subject<number>();
   deletedDevices$ = this.deletedDevicesSubject.asObservable();
 
-  constructor() {
+  constructor(private authService: AuthService) {
     this.client = new Client({
       brokerURL: 'ws://localhost:8080/ws/websocket',
+      beforeConnect: (client) => {
+        const token = this.authService.getToken();
+        client.connectHeaders = token === null ? {} : { Authorization: `Bearer ${token}` };
+      },
       onConnect: () => {
         this.client.subscribe('/topic/metrics', (message) => {
           this.metricsSubject.next(JSON.parse(message.body));
@@ -34,6 +39,9 @@ export class WebsocketService {
   }
 
   connect(): void {
+    if (this.authService.getToken() === null) {
+      return;
+    }
     this.client.activate();
   }
 }

@@ -75,6 +75,13 @@
   - Device name, type, location and agent hostname limited to 255 characters (400 instead of a database error)
   - Swagger descriptions for metric history, analytics and ingest
   - ThresholdServiceTest added, metric, controller and DTO tests extended
+- WebSocket authentication and origin restriction (branch 61_feature/websocket-authentication-and-origin-restriction):
+  - /ws accepts only origins from FRONTEND_ORIGIN (other origins get 403 on the handshake and on SockJS)
+  - STOMP CONNECT requires a valid JWT in the Authorization header (StompAuthChannelInterceptor), missing, invalid or expired tokens and deleted users are rejected
+  - SUBSCRIBE is allowed only after login and only to /topic/** destinations
+  - SEND from clients is rejected, so nobody can publish fake metrics or alerts to other users
+  - Frontend WebsocketService sends the token from AuthService in the CONNECT frame and does not connect without a token
+  - StompAuthChannelInterceptorTest added
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
@@ -83,7 +90,7 @@
 - devops/.env.example documenting required variables for docker-compose (JWT_SECRET, AGENT_API_KEY of 32+ bytes, ADMIN_*, FRONTEND_ORIGIN, DB_*)
 - Swagger disabled in production via SWAGGER_ENABLED switch
 - Rate limiting for /api/auth/login and /api/auth/register (brute-force protection)
-- WebSocket authentication and origin restriction: /ws allows any origin and needs no login, restrict to FRONTEND_ORIGIN and require the JWT in the STOMP CONNECT frame (frontend must send the token)
+- Close open WebSocket sessions when the JWT expires or the user is deleted (now the token is checked only on CONNECT)
 - Metric retention and simulation switch: scheduled cleanup of old metrics (METRIC_RETENTION_DAYS), DataSeeder and fake metric generator controlled by an environment variable so production never gets demo devices
 - Recalculate device status right after an admin changes thresholds (now it updates with the next metric)
 - Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)

@@ -85,7 +85,7 @@ public class SecurityConfig {
         return source;
     }
 
-    static List<String> parseOrigins(String raw) {
+    public static List<String> parseOrigins(String raw) {
         if (raw == null) {
             throw new IllegalStateException("FRONTEND_ORIGIN must be set");
         }
