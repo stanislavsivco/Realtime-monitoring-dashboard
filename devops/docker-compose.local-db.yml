@@ -1,9 +1,9 @@
 services:
   backend:
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/rmd
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      DB_URL: jdbc:postgresql://db:5432/rmd
+      DB_USERNAME: ${LOCAL_DB_USERNAME:?missing username}
+      DB_PASSWORD: ${LOCAL_DB_PASSWORD:?missing password}
     depends_on:
       - db
 
@@ -14,8 +14,8 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_DB: rmd
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${LOCAL_DB_USERNAME:?missing username}
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:?missing password}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -23,4 +23,4 @@ volumes:
   pgdata:
 
   # lokálna DB
-  # docker compose -f docker-compose.yml -f docker-compose.local-db.yml up --build #
+  # docker compose -f docker-compose.yml -f docker-compose.local-db.yml up --build
