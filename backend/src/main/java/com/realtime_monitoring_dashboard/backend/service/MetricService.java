@@ -3,7 +3,6 @@ package com.realtime_monitoring_dashboard.backend.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,7 +37,6 @@ public class MetricService {
     private final AlertService alertService;
     private final SimpMessagingTemplate messagingTemplate;
     private final DeviceStatusCalculator statusCalculator;
-    private final Random random = new Random();
 
     @Transactional
     public MetricDTO saveMetric(IngestMetricRequestDTO request) {
@@ -46,22 +44,6 @@ public class MetricService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Device not found with id: " + request.getDeviceId()));
         return persistMetric(device, request);
-    }
-
-    @Scheduled(fixedRate = 10000)
-    public void autoGenerateMetrics() {
-        for (Device device : deviceRepository.findBySimulatedTrue()) {
-            IngestMetricRequestDTO request = IngestMetricRequestDTO.builder()
-                    .deviceId(device.getId())
-                    .cpu(round2(10 + random.nextDouble() * 85))
-                    .ram(round2(20 + random.nextDouble() * 75))
-                    .disk(round2(10 + random.nextDouble() * 85))
-                    .latencyMs(5 + random.nextInt(146))
-                    .networkInMbps(round2(random.nextDouble() * 500))
-                    .networkOutMbps(round2(random.nextDouble() * 500))
-                    .build();
-            saveMetric(request);
-        }
     }
 
     private MetricDTO persistMetric(Device device, IngestMetricRequestDTO request) {
@@ -84,10 +66,6 @@ public class MetricService {
         messagingTemplate.convertAndSend("/topic/metrics", savedDto);
 
         return savedDto;
-    }
-
-    private double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
     }
 
     private void applyStatusAndAlerts(Device device, Metric metric) {

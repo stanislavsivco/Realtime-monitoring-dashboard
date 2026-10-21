@@ -82,6 +82,14 @@
   - SEND from clients is rejected, so nobody can publish fake metrics or alerts to other users
   - Frontend WebsocketService sends the token from AuthService in the CONNECT frame and does not connect without a token
   - StompAuthChannelInterceptorTest added
+- Metric retention and login rate limiting (branch 66_feature/metric-retention-and-login-rate-limiting):
+  - Metrics older than METRIC_RETENTION_DAYS (default 7, minimum 1) are deleted every hour in batches of 1000 (MetricRetentionService)
+  - Indexes on metrics.timestamp and (device_id, timestamp)
+  - SIMULATION_ENABLED switch (default false): DataSeeder and the fake metric generator (now MetricSimulator) run only when it is true, so production gets no demo data
+  - DataSeeder log fixed (it said "seeding continues" while it skipped seeding)
+  - Rate limiting per IP address: POST /api/auth/login 10 per minute, POST /api/auth/register 5 per hour (configurable), 429 with Retry-After and ErrorResponse (AuthRateLimitFilter, RateLimiter)
+  - server.forward-headers-strategy native: the client IP is taken from X-Forwarded-For only behind an internal proxy, so the header cannot be spoofed from outside
+  - New variables documented in .env.example, tests for retention (unit + H2), simulation switch, rate limiter and filter
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
@@ -89,14 +97,12 @@
 - docker-compose.local-db.yml: move the hardcoded postgres password to devops/.env, use DB_* variable names instead of SPRING_DATASOURCE_*
 - devops/.env.example documenting required variables for docker-compose (JWT_SECRET, AGENT_API_KEY of 32+ bytes, ADMIN_*, FRONTEND_ORIGIN, DB_*)
 - Swagger disabled in production via SWAGGER_ENABLED switch
-- Rate limiting for /api/auth/login and /api/auth/register (brute-force protection)
 - Close open WebSocket sessions when the JWT expires or the user is deleted (now the token is checked only on CONNECT)
-- Metric retention and simulation switch: scheduled cleanup of old metrics (METRIC_RETENTION_DAYS), DataSeeder and fake metric generator controlled by an environment variable so production never gets demo devices
 - Recalculate device status right after an admin changes thresholds (now it updates with the next metric)
 - Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
 - Frontend: login, role-aware UI, threshold management, analytics
 - Predictive trend engine
-- Simulation mode: smooth random-walk metrics with scripted incidents, SIMULATION_ENABLED switch, retention cleanup, "Simulated" badge in the UI
+- Simulation mode: smooth random-walk metrics with scripted incidents, "Simulated" badge in the UI
 - Deployment (Render, later Oracle Cloud or Azure) with environment variables
 - Database migrations (Flyway) instead of ddl-auto update, including a unique index on lower(username) and unique devices.name (ddl-auto skips the constraint silently if duplicate names already exist)
 - Device API consistency: POST /api/devices should return 201 Created
