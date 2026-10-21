@@ -1,5 +1,6 @@
 package com.realtime_monitoring_dashboard.backend.security;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,6 +41,12 @@ public class SecurityConfig {
     @Value("${agent.api-key}")
     private String agentApiKey;
 
+    @Value("${rate-limit.login-per-minute}")
+    private int loginPerMinute;
+
+    @Value("${rate-limit.register-per-hour}")
+    private int registerPerHour;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -55,6 +62,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/devices/register", "/api/devices/ingest").permitAll()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(new AuthRateLimitFilter(
+                                new RateLimiter(loginPerMinute, Duration.ofMinutes(1)),
+                                new RateLimiter(registerPerHour, Duration.ofHours(1)),
+                                securityErrorWriter),
+                        UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new AgentApiKeyFilter(agentApiKey, securityErrorWriter),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService, userDetailsService),
