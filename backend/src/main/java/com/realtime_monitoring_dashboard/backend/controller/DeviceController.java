@@ -2,6 +2,7 @@ package com.realtime_monitoring_dashboard.backend.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -38,36 +39,38 @@ public class DeviceController {
 
     private final DeviceService deviceService;
 
-    @Operation(summary = "List of all devices", description = "Returns all devices by status (CRITICAL → OFFLINE → WARNING → ONLINE)")
-    @ApiResponse(responseCode = "200", description = "List send successfully")
+    @Operation(operationId = "getDevices", summary = "List of all devices",
+            description = "Returns all devices by status (CRITICAL → OFFLINE → WARNING → ONLINE)")
+    @ApiResponse(responseCode = "200", description = "List of devices returned")
     @GetMapping
     public ResponseEntity<List<DeviceDTO>> getAllDevices() {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
-    @Operation(summary = "Detail of devices by ID")
+    @Operation(operationId = "getDevice", summary = "Detail of a device by ID")
     @ApiResponse(responseCode = "200", description = "Device found")
+    @ApiResponse(responseCode = "400", description = "Invalid device ID")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @GetMapping("/{id}")
     public ResponseEntity<DeviceDTO> getDeviceByID(@Parameter(description = "Device ID") @PathVariable @Positive Long id) {
         return ResponseEntity.ok(deviceService.getDeviceById(id));
     }
 
-    @Operation(summary = "Create new device")
-    @ApiResponse(responseCode = "200", description = "Device created")
+    @Operation(operationId = "createDevice", summary = "Create new device")
+    @ApiResponse(responseCode = "201", description = "Device created")
     @ApiResponse(responseCode = "400", description = "Invalid input data")
     @ApiResponse(responseCode = "409", description = "Device with this name already exists")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DeviceDTO> createDevice(@RequestBody @Valid CreateDeviceRequestDTO request) {
-        return ResponseEntity.ok(deviceService.createDevice(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(deviceService.createDevice(request));
     }
 
-    @Operation(summary = "Edit existing device")
+    @Operation(operationId = "updateDevice", summary = "Edit existing device")
     @ApiResponse(responseCode = "200", description = "Device edited")
-    @ApiResponse(responseCode = "400", description = "Invalid input data")
-    @ApiResponse(responseCode = "409", description = "Device with this name already exists")
+    @ApiResponse(responseCode = "400", description = "Invalid device ID or input data")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
+    @ApiResponse(responseCode = "409", description = "Device with this name already exists")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<DeviceDTO> updateDevice(@Parameter(description = "Device ID") @PathVariable @Positive Long id,
@@ -75,8 +78,9 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.updateDevice(id, request));
     }
 
-    @Operation(summary = "Delete device")
+    @Operation(operationId = "deleteDevice", summary = "Delete device")
     @ApiResponse(responseCode = "204", description = "Device deleted")
+    @ApiResponse(responseCode = "400", description = "Invalid device ID")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
@@ -85,9 +89,10 @@ public class DeviceController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Register or re-identify an agent by hostname",
+    @Operation(operationId = "registerAgent", summary = "Register or re-identify an agent by hostname",
             description = "Returns existing device if hostname is already known, otherwise creates a new one")
     @ApiResponse(responseCode = "200", description = "Device registered or found")
+    @ApiResponse(responseCode = "400", description = "Invalid input data")
     @SecurityRequirement(name = OpenApiConfig.AGENT_KEY)
     @PostMapping("/register")
     public ResponseEntity<DeviceDTO> registerAgent(@RequestBody @Valid RegisterAgentRequestDTO request) {

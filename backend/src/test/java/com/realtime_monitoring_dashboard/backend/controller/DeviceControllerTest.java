@@ -105,11 +105,11 @@ class DeviceControllerTest {
     }
 
     @Test
-    void createDevicePassesRequestToServiceAndReturnsDevice() throws Exception {
+    void createDevicePassesRequestToServiceAndReturns201WithDevice() throws Exception {
         when(deviceService.createDevice(any(CreateDeviceRequestDTO.class))).thenReturn(dto(10L, "Server-1"));
 
         mockMvc.perform(post("/api/devices").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(10));
 
         verify(deviceService).createDevice(any(CreateDeviceRequestDTO.class));

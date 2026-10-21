@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -27,8 +28,9 @@ public class AlertController {
 
     private final AlertService alertService;
 
-    @Operation(summary = "Get paginated and filtered list of alerts")
+    @Operation(operationId = "getAlerts", summary = "Get paginated and filtered list of alerts")
     @ApiResponse(responseCode = "200", description = "Page of alerts successfully returned")
+    @ApiResponse(responseCode = "400", description = "Invalid filter or paging value")
     @GetMapping
     public ResponseEntity<Page<AlertDTO>> getAlerts(
             @Parameter(description = "Filter by resolved status (true/false)")
@@ -37,13 +39,14 @@ public class AlertController {
             @Parameter(description = "Filter by alert severity (WARNING, CRITICAL)")
             @RequestParam(required = false) AlertSeverity severity,
 
-            @PageableDefault(size = 15, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 15, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
 
         return ResponseEntity.ok(alertService.getAlertsPaged(resolved, severity, pageable));
     }
 
-    @Operation(summary = "Acknowledge alert")
+    @Operation(operationId = "acknowledgeAlert", summary = "Acknowledge alert")
     @ApiResponse(responseCode = "200", description = "Alert acknowledged")
+    @ApiResponse(responseCode = "400", description = "Invalid alert ID")
     @ApiResponse(responseCode = "404", description = "Alert with this ID does not exist")
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/acknowledge")
@@ -52,8 +55,9 @@ public class AlertController {
         return ResponseEntity.ok(alertService.acknowledgeAlert(id));
     }
 
-    @Operation(summary = "Resolve alert")
+    @Operation(operationId = "resolveAlert", summary = "Resolve alert")
     @ApiResponse(responseCode = "200", description = "Alert resolved")
+    @ApiResponse(responseCode = "400", description = "Invalid alert ID")
     @ApiResponse(responseCode = "404", description = "Alert with this ID does not exist")
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/resolve")
