@@ -90,12 +90,20 @@
   - Rate limiting per IP address: POST /api/auth/login 10 per minute, POST /api/auth/register 5 per hour (configurable), 429 with Retry-After and ErrorResponse (AuthRateLimitFilter, RateLimiter)
   - server.forward-headers-strategy native: the client IP is taken from X-Forwarded-For only behind an internal proxy, so the header cannot be spoofed from outside
   - New variables documented in .env.example, tests for retention (unit + H2), simulation switch, rate limiter and filter
+- Local database credentials from .env (PR 51, Stano):
+  - docker-compose.local-db.yml reads LOCAL_DB_USERNAME and LOCAL_DB_PASSWORD, Compose stops when they are missing
+  - .env.example explains how to run with Neon or the local database, including down -v after a password change
+- OpenAPI operationIds for client generation (branch 67_feature/openapi-operation-ids):
+  - Every endpoint has an explicit, stable operationId (getDevices, createDevice, getMetricHistory, ...)
+  - Every 4xx response uses the ErrorResponse schema, 401 is added to secured endpoints and 403 to ADMIN-only endpoints automatically (OpenApiConfig customizers), 429 documented on login and register
+  - Paging exposed as page, size and sort query parameters, success responses documented as application/json
+  - POST /api/devices returns 201 Created
+  - docs/openapi.json committed, OpenApiSpecTest fails when it is outdated, ControllerOperationIdTest fails when an endpoint has no operationId
+  - Checked that openapi-generator (typescript-angular) generates the client from docs/openapi.json
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
-- docker-compose.local-db.yml: move the hardcoded postgres password to devops/.env, use DB_* variable names instead of SPRING_DATASOURCE_*
-- devops/.env.example documenting required variables for docker-compose (JWT_SECRET, AGENT_API_KEY of 32+ bytes, ADMIN_*, FRONTEND_ORIGIN, DB_*)
 - Swagger disabled in production via SWAGGER_ENABLED switch
 - Close open WebSocket sessions when the JWT expires or the user is deleted (now the token is checked only on CONNECT)
 - Recalculate device status right after an admin changes thresholds (now it updates with the next metric)
@@ -105,7 +113,6 @@
 - Simulation mode: smooth random-walk metrics with scripted incidents, "Simulated" badge in the UI
 - Deployment (Render, later Oracle Cloud or Azure) with environment variables
 - Database migrations (Flyway) instead of ddl-auto update, including a unique index on lower(username) and unique devices.name (ddl-auto skips the constraint silently if duplicate names already exist)
-- Device API consistency: POST /api/devices should return 201 Created
 
 ## Ideas
 - (add new ideas here)

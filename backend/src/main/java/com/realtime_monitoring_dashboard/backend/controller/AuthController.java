@@ -23,17 +23,21 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @Operation(summary = "Register a new user", description = "Always creates a VIEWER account")
+    @Operation(operationId = "register", summary = "Register a new user", description = "Always creates a VIEWER account")
     @ApiResponse(responseCode = "201", description = "User registered")
+    @ApiResponse(responseCode = "400", description = "Invalid input data")
     @ApiResponse(responseCode = "409", description = "Username already taken")
+    @ApiResponse(responseCode = "429", description = "Too many registrations from this address, see Retry-After")
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(@RequestBody @Valid RegisterRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
-    @Operation(summary = "Log in", description = "Returns a JWT token")
+    @Operation(operationId = "login", summary = "Log in", description = "Returns a JWT token")
     @ApiResponse(responseCode = "200", description = "Login successful")
+    @ApiResponse(responseCode = "400", description = "Invalid input data")
     @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    @ApiResponse(responseCode = "429", description = "Too many login attempts from this address, see Retry-After")
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));
