@@ -21,6 +21,3 @@ services:
 
 volumes:
   pgdata:
-
-  # lokálna DB
-  # docker compose -f docker-compose.yml -f docker-compose.local-db.yml up --build
