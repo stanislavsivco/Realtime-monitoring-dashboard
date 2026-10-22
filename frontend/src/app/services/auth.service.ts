@@ -33,4 +33,20 @@ export class AuthService {
     getRole(): string | null {
         return localStorage.getItem('role');
     }
+
+    isLoggedIn(): boolean {
+        return this.getToken() !== null;
+    }
+
+    // zobrazenie mena v dashboarde
+    getUsername(): string | null {
+        return localStorage.getItem('username');
+    }
+
+    // zmaze hodnoty co uklada saveSession
+    logout(): void {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('role');
+    }
 }
