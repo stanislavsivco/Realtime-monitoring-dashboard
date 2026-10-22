@@ -14,8 +14,12 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+springdoc:
+  default-produces-media-type: application/json
+
 server:
   port: 8080
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:native}
 
 jwt:
   secret: ${JWT_SECRET}
@@ -30,3 +34,13 @@ frontend:
 
 agent:
   api-key: ${AGENT_API_KEY}
+
+simulation:
+  enabled: ${SIMULATION_ENABLED:false}
+
+metric:
+  retention-days: ${METRIC_RETENTION_DAYS:7}
+
+rate-limit:
+  login-per-minute: ${LOGIN_RATE_LIMIT_PER_MINUTE:10}
+  register-per-hour: ${REGISTER_RATE_LIMIT_PER_HOUR:5}

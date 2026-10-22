@@ -1,0 +1,1868 @@
+{
+  "components" : {
+    "schemas" : {
+      "AlertDTO" : {
+        "properties" : {
+          "acknowledged" : {
+            "type" : "boolean"
+          },
+          "deviceId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "deviceName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "resolved" : {
+            "type" : "boolean"
+          },
+          "severity" : {
+            "enum" : [ "WARNING", "CRITICAL" ],
+            "type" : "string"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "AuthResponseDTO" : {
+        "properties" : {
+          "role" : {
+            "enum" : [ "ADMIN", "VIEWER" ],
+            "type" : "string"
+          },
+          "token" : {
+            "type" : "string"
+          },
+          "username" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ChangeRoleRequestDTO" : {
+        "properties" : {
+          "role" : {
+            "enum" : [ "ADMIN", "VIEWER" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "role" ],
+        "type" : "object"
+      },
+      "CreateDeviceRequestDTO" : {
+        "properties" : {
+          "location" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "name" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ONLINE", "WARNING", "CRITICAL", "OFFLINE" ],
+            "type" : "string"
+          },
+          "type" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "location", "name", "status", "type" ],
+        "type" : "object"
+      },
+      "DeviceDTO" : {
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "location" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "simulated" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "enum" : [ "ONLINE", "WARNING", "CRITICAL", "OFFLINE" ],
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ErrorResponse" : {
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "fieldErrors" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "path" : {
+            "type" : "string"
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }
+      },
+      "IngestMetricRequestDTO" : {
+        "properties" : {
+          "cpu" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "minimum" : 0.0,
+            "type" : "number"
+          },
+          "deviceId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "disk" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "minimum" : 0.0,
+            "type" : "number"
+          },
+          "latencyMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "networkInMbps" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "networkOutMbps" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "ram" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "minimum" : 0.0,
+            "type" : "number"
+          }
+        },
+        "required" : [ "cpu", "deviceId", "disk", "ram" ],
+        "type" : "object"
+      },
+      "LoginRequestDTO" : {
+        "properties" : {
+          "password" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "username" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "password", "username" ],
+        "type" : "object"
+      },
+      "MetricDTO" : {
+        "properties" : {
+          "cpu" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "deviceId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "disk" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "latencyMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "networkInMbps" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "networkOutMbps" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "ram" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "MetricSummaryDTO" : {
+        "properties" : {
+          "avgCpu" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "avgDisk" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "avgLatencyMs" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "avgRam" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "maxCpu" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "maxDisk" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "maxRam" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "minCpu" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "minDisk" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "minRam" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "PageAlertDTO" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AlertDTO"
+            },
+            "type" : "array"
+          },
+          "empty" : {
+            "type" : "boolean"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "numberOfElements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "PageMetricDTO" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MetricDTO"
+            },
+            "type" : "array"
+          },
+          "empty" : {
+            "type" : "boolean"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "numberOfElements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageable" : {
+            "$ref" : "#/components/schemas/PageableObject"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "PageableObject" : {
+        "properties" : {
+          "offset" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "pageNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "paged" : {
+            "type" : "boolean"
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
+          "unpaged" : {
+            "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
+      "RegisterAgentRequestDTO" : {
+        "properties" : {
+          "hostname" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "location" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "type" : {
+            "maxLength" : 255,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "hostname" ],
+        "type" : "object"
+      },
+      "RegisterRequestDTO" : {
+        "properties" : {
+          "password" : {
+            "maxLength" : 72,
+            "minLength" : 8,
+            "type" : "string"
+          },
+          "username" : {
+            "maxLength" : 50,
+            "minLength" : 3,
+            "pattern" : "^[A-Za-z0-9._-]+$",
+            "type" : "string"
+          }
+        },
+        "required" : [ "password", "username" ],
+        "type" : "object"
+      },
+      "SortObject" : {
+        "properties" : {
+          "empty" : {
+            "type" : "boolean"
+          },
+          "sorted" : {
+            "type" : "boolean"
+          },
+          "unsorted" : {
+            "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
+      "ThresholdDTO" : {
+        "properties" : {
+          "cpuCritical" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "cpuWarning" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "deviceId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "diskCritical" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "diskWarning" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "latencyCriticalMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "latencyWarningMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "ramCritical" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "ramWarning" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "UpdateThresholdRequestDTO" : {
+        "properties" : {
+          "cpuCritical" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "type" : "number"
+          },
+          "cpuWarning" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "type" : "number"
+          },
+          "diskCritical" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "type" : "number"
+          },
+          "diskWarning" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "type" : "number"
+          },
+          "latencyCriticalMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "latencyWarningMs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "ramCritical" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "type" : "number"
+          },
+          "ramWarning" : {
+            "format" : "double",
+            "maximum" : 100.0,
+            "type" : "number"
+          }
+        },
+        "required" : [ "cpuCritical", "cpuWarning", "diskCritical", "diskWarning", "latencyCriticalMs", "latencyWarningMs", "ramCritical", "ramWarning" ],
+        "type" : "object"
+      },
+      "UserDTO" : {
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "role" : {
+            "enum" : [ "ADMIN", "VIEWER" ],
+            "type" : "string"
+          },
+          "username" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "agentKey" : {
+        "in" : "header",
+        "name" : "X-Agent-Key",
+        "type" : "apiKey"
+      },
+      "bearerAuth" : {
+        "bearerFormat" : "JWT",
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  },
+  "info" : {
+    "description" : "Log in via POST /api/auth/login, copy the token and paste it into Authorize (bearerAuth). Agent endpoints /api/devices/register and /api/devices/ingest use the X-Agent-Key header (agentKey).",
+    "title" : "Real-time Monitoring Dashboard API",
+    "version" : "v1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/alerts" : {
+      "get" : {
+        "operationId" : "getAlerts",
+        "parameters" : [ {
+          "description" : "Filter by resolved status (true/false)",
+          "in" : "query",
+          "name" : "resolved",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Filter by alert severity (WARNING, CRITICAL)",
+          "in" : "query",
+          "name" : "severity",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "WARNING", "CRITICAL" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 15,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "default" : [ "timestamp,DESC" ],
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageAlertDTO"
+                }
+              }
+            },
+            "description" : "Page of alerts successfully returned"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid filter or paging value"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          }
+        },
+        "summary" : "Get paginated and filtered list of alerts",
+        "tags" : [ "Alerts" ]
+      }
+    },
+    "/api/alerts/{id}/acknowledge" : {
+      "patch" : {
+        "operationId" : "acknowledgeAlert",
+        "parameters" : [ {
+          "description" : "Alert ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AlertDTO"
+                }
+              }
+            },
+            "description" : "Alert acknowledged"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid alert ID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Alert with this ID does not exist"
+          }
+        },
+        "summary" : "Acknowledge alert",
+        "tags" : [ "Alerts" ]
+      }
+    },
+    "/api/alerts/{id}/resolve" : {
+      "patch" : {
+        "operationId" : "resolveAlert",
+        "parameters" : [ {
+          "description" : "Alert ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AlertDTO"
+                }
+              }
+            },
+            "description" : "Alert resolved"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid alert ID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Alert with this ID does not exist"
+          }
+        },
+        "summary" : "Resolve alert",
+        "tags" : [ "Alerts" ]
+      }
+    },
+    "/api/auth/login" : {
+      "post" : {
+        "description" : "Returns a JWT token",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthResponseDTO"
+                }
+              }
+            },
+            "description" : "Login successful"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid input data"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid credentials"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Too many login attempts from this address, see Retry-After"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Log in",
+        "tags" : [ "Auth" ]
+      }
+    },
+    "/api/auth/register" : {
+      "post" : {
+        "description" : "Always creates a VIEWER account",
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthResponseDTO"
+                }
+              }
+            },
+            "description" : "User registered"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid input data"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Username already taken"
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Too many registrations from this address, see Retry-After"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Register a new user",
+        "tags" : [ "Auth" ]
+      }
+    },
+    "/api/devices" : {
+      "get" : {
+        "description" : "Returns all devices by status (CRITICAL → OFFLINE → WARNING → ONLINE)",
+        "operationId" : "getDevices",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DeviceDTO"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "List of devices returned"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          }
+        },
+        "summary" : "List of all devices",
+        "tags" : [ "Devices" ]
+      },
+      "post" : {
+        "operationId" : "createDevice",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateDeviceRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceDTO"
+                }
+              }
+            },
+            "description" : "Device created"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid input data"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this name already exists"
+          }
+        },
+        "summary" : "Create new device",
+        "tags" : [ "Devices" ]
+      }
+    },
+    "/api/devices/ingest" : {
+      "post" : {
+        "description" : "The server sets the timestamp. cpu, ram and disk are percentages between 0 and 100",
+        "operationId" : "ingestMetric",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IngestMetricRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Metric stored"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid metric values"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this ID does not exist"
+          }
+        },
+        "security" : [ {
+          "agentKey" : [ ]
+        } ],
+        "summary" : "Ingest a metric from an agent",
+        "tags" : [ "Metrics" ]
+      }
+    },
+    "/api/devices/register" : {
+      "post" : {
+        "description" : "Returns existing device if hostname is already known, otherwise creates a new one",
+        "operationId" : "registerAgent",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterAgentRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceDTO"
+                }
+              }
+            },
+            "description" : "Device registered or found"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid input data"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          }
+        },
+        "security" : [ {
+          "agentKey" : [ ]
+        } ],
+        "summary" : "Register or re-identify an agent by hostname",
+        "tags" : [ "Devices" ]
+      }
+    },
+    "/api/devices/{id}" : {
+      "delete" : {
+        "operationId" : "deleteDevice",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Device deleted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this ID does not exist"
+          }
+        },
+        "summary" : "Delete device",
+        "tags" : [ "Devices" ]
+      },
+      "get" : {
+        "operationId" : "getDevice",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceDTO"
+                }
+              }
+            },
+            "description" : "Device found"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this ID does not exist"
+          }
+        },
+        "summary" : "Detail of a device by ID",
+        "tags" : [ "Devices" ]
+      },
+      "put" : {
+        "operationId" : "updateDevice",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateDeviceRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceDTO"
+                }
+              }
+            },
+            "description" : "Device edited"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID or input data"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this ID does not exist"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this name already exists"
+          }
+        },
+        "summary" : "Edit existing device",
+        "tags" : [ "Devices" ]
+      }
+    },
+    "/api/devices/{id}/analytics" : {
+      "get" : {
+        "description" : "Average, maximum and minimum values. Defaults to the last 7 days",
+        "operationId" : "getMetricSummary",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Start of time interval",
+          "in" : "query",
+          "name" : "startDate",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "description" : "End of time interval",
+          "in" : "query",
+          "name" : "endDate",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MetricSummaryDTO"
+                }
+              }
+            },
+            "description" : "Summary returned"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID or date, or startDate is after endDate"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          }
+        },
+        "summary" : "Metric summary of a device",
+        "tags" : [ "Metrics" ]
+      }
+    },
+    "/api/devices/{id}/metrics" : {
+      "get" : {
+        "description" : "Paged, newest first. Optional startDate and endDate filter the time interval",
+        "operationId" : "getMetricHistory",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Start of time interval",
+          "in" : "query",
+          "name" : "startDate",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "description" : "End of time interval",
+          "in" : "query",
+          "name" : "endDate",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Zero-based page index (0..N)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The size of the page to be returned",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "default" : [ "timestamp,DESC" ],
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageMetricDTO"
+                }
+              }
+            },
+            "description" : "Page of metrics returned"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID, date or paging value, or startDate is after endDate"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          }
+        },
+        "summary" : "Metric history of a device",
+        "tags" : [ "Metrics" ]
+      }
+    },
+    "/api/devices/{id}/metrics/latest" : {
+      "get" : {
+        "operationId" : "getLatestMetric",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MetricDTO"
+                }
+              }
+            },
+            "description" : "Metric found"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device does not have any metrics or does not exist"
+          }
+        },
+        "summary" : "Newest device metric",
+        "tags" : [ "Metrics" ]
+      }
+    },
+    "/api/devices/{id}/thresholds" : {
+      "get" : {
+        "description" : "Returns the saved thresholds, or the default ones if an admin has not saved any yet",
+        "operationId" : "getThresholds",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ThresholdDTO"
+                }
+              }
+            },
+            "description" : "Thresholds returned"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this ID does not exist"
+          }
+        },
+        "summary" : "Get thresholds for a device",
+        "tags" : [ "Thresholds" ]
+      },
+      "put" : {
+        "operationId" : "updateThresholds",
+        "parameters" : [ {
+          "description" : "Device ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateThresholdRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ThresholdDTO"
+                }
+              }
+            },
+            "description" : "Thresholds updated"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid device ID or input data, or a warning value is not lower than its critical value"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Device with this ID does not exist"
+          }
+        },
+        "summary" : "Update thresholds for a device",
+        "tags" : [ "Thresholds" ]
+      }
+    },
+    "/api/users" : {
+      "get" : {
+        "operationId" : "getUsers",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/UserDTO"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "User list returned"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          }
+        },
+        "summary" : "List all users",
+        "tags" : [ "Users" ]
+      }
+    },
+    "/api/users/{id}/role" : {
+      "patch" : {
+        "operationId" : "changeUserRole",
+        "parameters" : [ {
+          "description" : "User ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "exclusiveMinimum" : 0,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangeRoleRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDTO"
+                }
+              }
+            },
+            "description" : "Role updated"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Invalid user ID or role"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Missing, invalid or expired credentials"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "Only ADMIN can perform this action"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "User with this ID does not exist"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description" : "The last admin cannot lose the ADMIN role"
+          }
+        },
+        "summary" : "Change a user's role",
+        "tags" : [ "Users" ]
+      }
+    }
+  },
+  "security" : [ {
+    "bearerAuth" : [ ]
+  } ],
+  "tags" : [ {
+    "description" : "History and present device metrics",
+    "name" : "Metrics"
+  }, {
+    "description" : "Monitored devices",
+    "name" : "Devices"
+  }, {
+    "description" : "Alerts generated by device status",
+    "name" : "Alerts"
+  }, {
+    "description" : "Per-device alert thresholds",
+    "name" : "Thresholds"
+  }, {
+    "description" : "Registration and login",
+    "name" : "Auth"
+  }, {
+    "description" : "User management (admin only)",
+    "name" : "Users"
+  } ]
+}

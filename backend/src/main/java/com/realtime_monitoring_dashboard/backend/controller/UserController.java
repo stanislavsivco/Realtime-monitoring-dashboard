@@ -34,16 +34,18 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "List all users")
+    @Operation(operationId = "getUsers", summary = "List all users")
     @ApiResponse(responseCode = "200", description = "User list returned")
     @GetMapping
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @Operation(summary = "Change a user's role")
+    @Operation(operationId = "changeUserRole", summary = "Change a user's role")
     @ApiResponse(responseCode = "200", description = "Role updated")
+    @ApiResponse(responseCode = "400", description = "Invalid user ID or role")
     @ApiResponse(responseCode = "404", description = "User with this ID does not exist")
+    @ApiResponse(responseCode = "409", description = "The last admin cannot lose the ADMIN role")
     @PatchMapping("/{id}/role")
     public ResponseEntity<UserDTO> changeRole(
             @Parameter(description = "User ID") @PathVariable @Positive Long id,

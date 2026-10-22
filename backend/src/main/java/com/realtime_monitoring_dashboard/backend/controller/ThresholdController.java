@@ -24,9 +24,10 @@ public class ThresholdController {
 
     private final ThresholdService thresholdService;
 
-    @Operation(summary = "Get thresholds for a device",
-            description = "Returns device thresholds, creating default ones if none exist yet")
+    @Operation(operationId = "getThresholds", summary = "Get thresholds for a device",
+            description = "Returns the saved thresholds, or the default ones if an admin has not saved any yet")
     @ApiResponse(responseCode = "200", description = "Thresholds returned")
+    @ApiResponse(responseCode = "400", description = "Invalid device ID")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @GetMapping("/{id}/thresholds")
     public ResponseEntity<ThresholdDTO> getThresholds(
@@ -34,9 +35,9 @@ public class ThresholdController {
         return ResponseEntity.ok(thresholdService.getThresholdByDeviceId(id));
     }
 
-    @Operation(summary = "Update thresholds for a device")
+    @Operation(operationId = "updateThresholds", summary = "Update thresholds for a device")
     @ApiResponse(responseCode = "200", description = "Thresholds updated")
-    @ApiResponse(responseCode = "400", description = "Invalid input data")
+    @ApiResponse(responseCode = "400", description = "Invalid device ID or input data, or a warning value is not lower than its critical value")
     @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/thresholds")

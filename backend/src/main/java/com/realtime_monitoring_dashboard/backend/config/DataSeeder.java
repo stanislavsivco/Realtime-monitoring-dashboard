@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.realtime_monitoring_dashboard.backend.model.Device;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "simulation.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
@@ -31,9 +33,9 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (deviceRepository.count() > 0) {
-            log.info("Database already contains devices ({}), seeding continues.",
-                    deviceRepository.count());
+        long existingDevices = deviceRepository.count();
+        if (existingDevices > 0) {
+            log.info("Database already contains {} devices, skipping seeding.", existingDevices);
             return;
         }
 
