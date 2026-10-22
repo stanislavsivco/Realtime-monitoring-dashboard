@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.realtime_monitoring_dashboard.backend.dto.ThresholdDTO;
 import com.realtime_monitoring_dashboard.backend.dto.UpdateThresholdRequestDTO;
@@ -36,6 +37,8 @@ class ThresholdServiceTest {
     private ThresholdRepository thresholdRepository;
     @Mock
     private DeviceRepository deviceRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ThresholdService thresholdService;
@@ -107,6 +110,17 @@ class ThresholdServiceTest {
     }
 
     @Test
+    void updatePublishesThresholdUpdatedEventSoStatusIsRecalculated() {
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device(1L)));
+        when(thresholdRepository.findByDeviceId(1L)).thenReturn(Optional.empty());
+        when(thresholdRepository.save(any(Threshold.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        thresholdService.updateThreshold(1L, validRequest());
+
+        verify(eventPublisher).publishEvent(new ThresholdUpdatedEvent(1L));
+    }
+
+    @Test
     void updateChangesExistingThreshold() {
         Threshold stored = Threshold.builder().id(7L).device(device(1L)).cpuWarning(75.0).cpuCritical(90.0).build();
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device(1L)));
@@ -126,6 +140,7 @@ class ThresholdServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> thresholdService.updateThreshold(99L, validRequest()));
 
         verify(thresholdRepository, never()).save(any(Threshold.class));
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -136,6 +151,6 @@ class ThresholdServiceTest {
                 () -> thresholdService.updateThreshold(1L, request));
 
         assertThat(ex.getMessage()).contains("cpuWarning");
-        verifyNoInteractions(thresholdRepository, deviceRepository);
+        verifyNoInteractions(thresholdRepository, deviceRepository, eventPublisher);
     }
 }

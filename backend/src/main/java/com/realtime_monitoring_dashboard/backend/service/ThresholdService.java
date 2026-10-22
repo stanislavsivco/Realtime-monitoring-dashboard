@@ -1,5 +1,6 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ public class ThresholdService {
 
     private final ThresholdRepository thresholdRepository;
     private final DeviceRepository deviceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public Threshold getEffectiveThreshold(Long deviceId) {
         return thresholdRepository.findByDeviceId(deviceId)
@@ -58,6 +60,7 @@ public class ThresholdService {
         threshold.setLatencyCriticalMs(request.getLatencyCriticalMs());
 
         Threshold saved = thresholdRepository.save(threshold);
+        eventPublisher.publishEvent(new ThresholdUpdatedEvent(device.getId()));
         return mapToDTO(saved, device.getId());
     }
 
