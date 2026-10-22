@@ -100,13 +100,17 @@
   - POST /api/devices returns 201 Created
   - docs/openapi.json committed, OpenApiSpecTest fails when it is outdated, ControllerOperationIdTest fails when an endpoint has no operationId
   - Checked that openapi-generator (typescript-angular) generates the client from docs/openapi.json
+- Recalculate device status after threshold change (branch 68_feature/recalculate-status-after-threshold-change):
+  - ThresholdService publishes ThresholdUpdatedEvent after saving, MetricService listens and recalculates the status from the latest metric with the same status and alert logic as for a new metric
+  - Status change is saved, old alerts are resolved, a WARNING or CRITICAL alert is created and the device is broadcast to /topic/devices right away
+  - OFFLINE devices, devices without metrics and devices whose latest metric is older than 30 seconds are left unchanged, no metric is stored and no alert is duplicated
+  - Unit tests and ThresholdStatusIntegrationTest (H2, real Spring event wiring)
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
 - Swagger disabled in production via SWAGGER_ENABLED switch
 - Close open WebSocket sessions when the JWT expires or the user is deleted (now the token is checked only on CONNECT)
-- Recalculate device status right after an admin changes thresholds (now it updates with the next metric)
 - Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
 - Frontend: login, role-aware UI, threshold management, analytics
 - Predictive trend engine
