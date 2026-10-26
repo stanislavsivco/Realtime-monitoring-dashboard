@@ -3,6 +3,8 @@ import { Subscription, interval } from 'rxjs';
 import { MetricService, MetricDTO } from '../services/metric.service';
 import { WebsocketService } from '../services/websocket.service';
 import { DeviceService, DeviceDTO } from '../services/device.service';
+import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,6 +22,8 @@ export class Dashboard implements OnInit, OnDestroy {
   selectedCategory = signal<string>('computers');
   selectedDeviceId = signal<number | null>(null);
   devices = signal<DeviceDTO[]>([]);
+  username = signal<string | null>(null);
+  role = signal<string | null>(null);
   private metricsSubscription?: Subscription;
   private devicesSubscription?: Subscription;
   private deletedDevicesSubscription?: Subscription;
@@ -44,9 +48,11 @@ export class Dashboard implements OnInit, OnDestroy {
     return null;
   });
 
-  constructor(private metricService: MetricService, private websocketService: WebsocketService, private deviceService: DeviceService) { }
+  constructor(private metricService: MetricService, private websocketService: WebsocketService, private deviceService: DeviceService, private authService: AuthService, private router: Router) { }
 
   ngOnInit(): void {
+    this.username.set(this.authService.getUsername());
+    this.role.set(this.authService.getRole());
     this.websocketService.connect();
 
     this.deviceService.getDevices().subscribe({
@@ -76,6 +82,12 @@ export class Dashboard implements OnInit, OnDestroy {
     this.refreshSubscription = interval(10000).subscribe(() => {
       this.reloadDevices();
     });
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.websocketService.disconnect();
+    this.router.navigate(['/login']);
   }
 
   getCategory(device: DeviceDTO): string {

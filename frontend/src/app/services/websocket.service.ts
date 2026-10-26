@@ -44,4 +44,9 @@ export class WebsocketService {
     }
     this.client.activate();
   }
+
+  // Ukonci websocket spojenie pri odhlaseni, aby spojenie neostalo otvorene
+  disconnect(): void {
+    this.client.deactivate();
+  }
 }
