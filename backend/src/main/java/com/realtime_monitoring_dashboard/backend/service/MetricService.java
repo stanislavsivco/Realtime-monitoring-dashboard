@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -44,6 +45,22 @@ public class MetricService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Device not found with id: " + request.getDeviceId()));
         return persistMetric(device, request);
+    }
+
+    @EventListener
+    public void onThresholdUpdated(ThresholdUpdatedEvent event) {
+        Optional<Device> device = deviceRepository.findById(event.deviceId());
+        if (device.isEmpty() || device.get().getStatus() == DeviceStatus.OFFLINE) {
+            return;
+        }
+
+        Optional<Metric> latest = metricRepository.findTopByDeviceIdOrderByTimestampDesc(event.deviceId());
+        LocalDateTime offlineLimit = LocalDateTime.now().minusSeconds(OFFLINE_THRESHOLD_SECONDS);
+        if (latest.isEmpty() || latest.get().getTimestamp().isBefore(offlineLimit)) {
+            return;
+        }
+
+        applyStatusAndAlerts(device.get(), latest.get());
     }
 
     private MetricDTO persistMetric(Device device, IngestMetricRequestDTO request) {

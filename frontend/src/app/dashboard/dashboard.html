@@ -17,6 +17,8 @@
         <div class="top-bar-logo">RMD</div>
 
         <div class="top-bar-actions">
+            <span class="user-name">{{ username() }} ({{ role() }})</span>
+            <button class="logout-button" type="button" (click)="logout()">Sign out</button>
             <button class="icon-button" type="button" aria-label="Notifications">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path

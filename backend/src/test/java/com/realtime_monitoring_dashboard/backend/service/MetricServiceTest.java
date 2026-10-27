@@ -410,4 +410,101 @@ class MetricServiceTest {
 
         verify(metricRepository).getMetricSummary(1L, end.minusDays(7), end);
     }
+
+    @Test
+    void thresholdChangeTurnsDeviceCriticalRightAwayAndBroadcastsIt() {
+        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(1L)).thenReturn(Optional.of(metric(5L, device)));
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.CRITICAL);
+        stubSavesToEchoArguments();
+
+        metricService.onThresholdUpdated(new ThresholdUpdatedEvent(1L));
+
+        assertThat(device.getStatus()).isEqualTo(DeviceStatus.CRITICAL);
+        verify(alertService).resolveActiveAlertsForDevice(device);
+        verify(alertService).createAlert(same(device), eq(AlertSeverity.CRITICAL), anyString());
+        ArgumentCaptor<DeviceDTO> captor = ArgumentCaptor.forClass(DeviceDTO.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/devices"), captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(DeviceStatus.CRITICAL);
+    }
+
+    @Test
+    void thresholdChangeBackToNormalTurnsDeviceOnlineAndResolvesAlerts() {
+        Device device = device(1L, "Server-1", DeviceStatus.WARNING);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(1L)).thenReturn(Optional.of(metric(5L, device)));
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        stubSavesToEchoArguments();
+
+        metricService.onThresholdUpdated(new ThresholdUpdatedEvent(1L));
+
+        assertThat(device.getStatus()).isEqualTo(DeviceStatus.ONLINE);
+        verify(alertService).resolveActiveAlertsForDevice(device);
+        verify(alertService, never()).createAlert(any(), any(), anyString());
+        verify(messagingTemplate).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
+    }
+
+    @Test
+    void thresholdChangeWithoutStatusChangeDoesNotBroadcastOrStoreMetric() {
+        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(1L)).thenReturn(Optional.of(metric(5L, device)));
+        when(statusCalculator.calculate(any(Device.class), any(Metric.class))).thenReturn(DeviceStatus.ONLINE);
+        stubSavesToEchoArguments();
+
+        metricService.onThresholdUpdated(new ThresholdUpdatedEvent(1L));
+
+        verify(alertService, never()).resolveActiveAlertsForDevice(any());
+        verify(messagingTemplate, never()).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
+        verify(metricRepository, never()).save(any(Metric.class));
+    }
+
+    @Test
+    void thresholdChangeKeepsOfflineDeviceOffline() {
+        Device device = device(1L, "Server-1", DeviceStatus.OFFLINE);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+
+        metricService.onThresholdUpdated(new ThresholdUpdatedEvent(1L));
+
+        assertThat(device.getStatus()).isEqualTo(DeviceStatus.OFFLINE);
+        verify(statusCalculator, never()).calculate(any(), any());
+        verify(deviceRepository, never()).save(any(Device.class));
+    }
+
+    @Test
+    void thresholdChangeIgnoresDeviceWithoutMetrics() {
+        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(1L)).thenReturn(Optional.empty());
+
+        metricService.onThresholdUpdated(new ThresholdUpdatedEvent(1L));
+
+        verify(statusCalculator, never()).calculate(any(), any());
+        verify(deviceRepository, never()).save(any(Device.class));
+    }
+
+    @Test
+    void thresholdChangeIgnoresMetricOlderThanOfflineLimit() {
+        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
+        Metric stale = metric(5L, device);
+        stale.setTimestamp(LocalDateTime.now().minusMinutes(5));
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(1L)).thenReturn(Optional.of(stale));
+
+        metricService.onThresholdUpdated(new ThresholdUpdatedEvent(1L));
+
+        verify(statusCalculator, never()).calculate(any(), any());
+        verify(deviceRepository, never()).save(any(Device.class));
+    }
+
+    @Test
+    void thresholdChangeForDeletedDeviceDoesNothing() {
+        when(deviceRepository.findById(1L)).thenReturn(Optional.empty());
+
+        metricService.onThresholdUpdated(new ThresholdUpdatedEvent(1L));
+
+        verify(metricRepository, never()).findTopByDeviceIdOrderByTimestampDesc(any());
+        verify(deviceRepository, never()).save(any(Device.class));
+    }
 }
