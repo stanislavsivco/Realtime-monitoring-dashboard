@@ -427,4 +427,20 @@ class ApiSecurityIntegrationTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/v3/api-docs"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void viewerGetsDevicesWith200() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/devices")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(viewerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void ingestWithValidAgentKeyReturns201() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/devices/ingest")
+                        .header(AgentApiKeyFilter.HEADER, AGENT_KEY)
+                        .contentType(MediaType.APPLICATION_JSON).content(INGEST_BODY))
+                .andExpect(status().isCreated());
+    }
 }
