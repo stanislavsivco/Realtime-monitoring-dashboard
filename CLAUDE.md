@@ -12,7 +12,7 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 - Package com.realtime_monitoring_dashboard.backend: controller, service, repository, model, dto, exception, security, config
 - Layers: controller -> service -> repository. Controllers never return entities, always DTOs.
 - Validation with @Valid / @Validated. Errors are handled by GlobalExceptionHandler (ErrorResponse).
-- Every endpoint has @Operation with an explicit operationId. docs/openapi.json is generated from the API and checked by OpenApiSpecTest.
+- Every endpoint has @Operation with an explicit operationId. Swagger generates the spec at runtime (/v3/api-docs, /swagger-ui.html), there is no committed openapi.json.
 - Device status: ONLINE, WARNING, CRITICAL, computed from the per-device Threshold (DeviceStatusCalculator). After a threshold change it is recalculated from the latest metric (ThresholdUpdatedEvent, MetricService.onThresholdUpdated). OFFLINE is set by checkOfflineDevices when no metric arrives for 30 seconds.
 - WebSocket (STOMP): endpoint /ws, topics /topic/metrics, /topic/devices, /topic/devices/delete, /topic/alerts. Only FRONTEND_ORIGIN may connect, CONNECT needs the JWT (Authorization: Bearer), clients may only SUBSCRIBE to /topic/**, SEND is rejected (StompAuthChannelInterceptor).
 - Demo data (DataSeeder, MetricSimulator) runs only when SIMULATION_ENABLED=true, and the generator only for devices with simulated = true.
@@ -25,7 +25,7 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 - Public registration (/api/auth/register) always creates the VIEWER role. Only ADMIN can change roles.
 - The initial admin is created at startup from ADMIN_USERNAME and ADMIN_PASSWORD. There is no default password.
 - VIEWER is read-only. Changes (devices, thresholds, users) are ADMIN-only via @PreAuthorize.
-- /api/devices/register and /api/devices/ingest are public for now. An agent API key is planned.
+- /api/devices/register and /api/devices/ingest require the X-Agent-Key header (AGENT_API_KEY, AgentApiKeyFilter), not a JWT.
 
 ## Code style and workflow
 - Do not write comments in code.
@@ -37,7 +37,6 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 - Build: ./mvnw compile (run in backend/, without clean)
 - Tests: ./mvnw test
 - Run: ./mvnw spring-boot:run
-- Update docs/openapi.json after an API change: ./mvnw test -Dtest=OpenApiSpecTest -Dopenapi.update=true
 
 ## Roadmap
 @docs/ROADMAP.md

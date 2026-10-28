@@ -93,20 +93,27 @@
 - Local database credentials from .env (PR 51, Stano):
   - docker-compose.local-db.yml reads LOCAL_DB_USERNAME and LOCAL_DB_PASSWORD, Compose stops when they are missing
   - .env.example explains how to run with Neon or the local database, including down -v after a password change
-- OpenAPI operationIds for client generation (branch 67_feature/openapi-operation-ids):
+- OpenAPI operationIds (branch 67_feature/openapi-operation-ids):
   - Every endpoint has an explicit, stable operationId (getDevices, createDevice, getMetricHistory, ...)
-  - Every 4xx response uses the ErrorResponse schema, 401 is added to secured endpoints and 403 to ADMIN-only endpoints automatically (OpenApiConfig customizers), 429 documented on login and register
+  - 429 documented on login and register
   - Paging exposed as page, size and sort query parameters, success responses documented as application/json
   - POST /api/devices returns 201 Created
-  - docs/openapi.json committed, OpenApiSpecTest fails when it is outdated, ControllerOperationIdTest fails when an endpoint has no operationId
-  - Checked that openapi-generator (typescript-angular) generates the client from docs/openapi.json
-- API security integration tests (branch 65_feature/api-security-integration-tests):
+- Simplify OpenAPI configuration (branch 71_feature/simplify-openapi):
+  - OpenApiConfig keeps only the API info and the bearerAuth and agentKey schemes for the Authorize button, the customizers that added 401/403 and the ErrorResponse schema to every operation are removed
+  - docs/openapi.json, OpenApiSpecTest and ControllerOperationIdTest are removed, Swagger generates the spec at runtime on /v3/api-docs
+  - Fixes docker compose up --build, OpenApiSpecTest failed there because docs/ is outside the Docker build context
+  - Controller annotations (@Operation with operationId, @ApiResponse, @Parameter, @SecurityRequirement) stay unchanged
+- Frontend login (PR 55, Peter Supinsky):
+  - authGuard on dashboard, device detail, alerts and admin routes, logged-in user is redirected away from login
+  - Sign out button, the interceptor logs out, closes the WebSocket and redirects to login on 401
+- API security integration tests (PR 56, Stano, branch 65-apiSecurity-integration-tests):
   - ApiSecurityIntegrationTest boots the full application context with the real SecurityConfig, filters, @PreAuthorize and database users, services are mocked
   - One endpoint matrix (PUBLIC, AGENT, AUTHENTICATED, ADMIN) drives the tests, a coverage test fails when a controller endpoint is missing from the matrix
   - Anonymous gets 401, VIEWER gets 403 on every ADMIN endpoint and the service is never called, ADMIN is allowed everywhere
   - Agent endpoints need a valid X-Agent-Key (a JWT does not replace it, the key does not open user endpoints)
   - Malformed, foreign-signed and expired tokens, deleted users and a Basic header are treated as anonymous, the role claim in the token is ignored, a demoted admin loses access with the same token
   - Unknown paths require authentication, /v3/api-docs stays public
+  - RegisterRoleIntegrationTest (real AuthService and H2): registration with "role": "ADMIN" or similar fields in the body still creates a VIEWER
 - Recalculate device status after threshold change (branch 68_feature/recalculate-status-after-threshold-change):
   - ThresholdService publishes ThresholdUpdatedEvent after saving, MetricService listens and recalculates the status from the latest metric with the same status and alert logic as for a new metric
   - Status change is saved, old alerts are resolved, a WARNING or CRITICAL alert is created and the device is broadcast to /topic/devices right away
@@ -119,7 +126,7 @@
 - Swagger disabled in production via SWAGGER_ENABLED switch
 - Close open WebSocket sessions when the JWT expires or the user is deleted (now the token is checked only on CONNECT)
 - Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
-- Frontend: login, role-aware UI, threshold management, analytics
+- Frontend: role-aware UI, threshold management, analytics
 - Predictive trend engine
 - Simulation mode: smooth random-walk metrics with scripted incidents, "Simulated" badge in the UI
 - Deployment (Render, later Oracle Cloud or Azure) with environment variables
