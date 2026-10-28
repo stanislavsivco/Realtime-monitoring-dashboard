@@ -100,6 +100,13 @@
   - POST /api/devices returns 201 Created
   - docs/openapi.json committed, OpenApiSpecTest fails when it is outdated, ControllerOperationIdTest fails when an endpoint has no operationId
   - Checked that openapi-generator (typescript-angular) generates the client from docs/openapi.json
+- API security integration tests (branch 65_feature/api-security-integration-tests):
+  - ApiSecurityIntegrationTest boots the full application context with the real SecurityConfig, filters, @PreAuthorize and database users, services are mocked
+  - One endpoint matrix (PUBLIC, AGENT, AUTHENTICATED, ADMIN) drives the tests, a coverage test fails when a controller endpoint is missing from the matrix
+  - Anonymous gets 401, VIEWER gets 403 on every ADMIN endpoint and the service is never called, ADMIN is allowed everywhere
+  - Agent endpoints need a valid X-Agent-Key (a JWT does not replace it, the key does not open user endpoints)
+  - Malformed, foreign-signed and expired tokens, deleted users and a Basic header are treated as anonymous, the role claim in the token is ignored, a demoted admin loses access with the same token
+  - Unknown paths require authentication, /v3/api-docs stays public
 - Recalculate device status after threshold change (branch 68_feature/recalculate-status-after-threshold-change):
   - ThresholdService publishes ThresholdUpdatedEvent after saving, MetricService listens and recalculates the status from the latest metric with the same status and alert logic as for a new metric
   - Status change is saved, old alerts are resolved, a WARNING or CRITICAL alert is created and the device is broadcast to /topic/devices right away
