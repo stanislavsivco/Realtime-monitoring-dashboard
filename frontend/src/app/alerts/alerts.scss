@@ -4,7 +4,7 @@
 
 .alerts-page {
     display: flex;
-    min-height: 100vh;
+    min-height: calc(100vh - var(--navbar-height));
     background-color: var(--bg);
     flex-direction: column;
     padding: 24px 32px;
@@ -15,12 +15,6 @@
     display: flex;
     gap: 16px;
     align-items: center;
-}
-
-.back-link {
-    color: var(--text-muted);
-    text-decoration: none;
-    font-size: 0.85rem;
 }
 
 .alerts-title {

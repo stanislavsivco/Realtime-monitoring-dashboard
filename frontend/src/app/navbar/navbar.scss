@@ -1,0 +1,67 @@
+:host {
+    display: block;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: var(--navbar-height);
+    padding: 0 32px;
+    box-sizing: border-box;
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.navbar-logo {
+    font-size: 1.6rem;
+    color: var(--accent);
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.navbar-links {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+}
+
+.navbar-link {
+    color: var(--text-muted);
+    padding: 8px 14px;
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: 999px;
+}
+
+.navbar-link:hover {
+    color: var(--text);
+}
+
+.navbar-link.active {
+    background-color: var(--accent);
+    color: #ffffff;
+}
+
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navbar-user {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.navbar-logout {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    font-family: inherit;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 13px;
+}
