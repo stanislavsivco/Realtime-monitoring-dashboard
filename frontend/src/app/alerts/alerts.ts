@@ -1,11 +1,10 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { AlertDTO, AlertService } from '../services/alert.service';
 
 @Component({
   selector: 'app-alerts',
-  imports: [RouterLink, DatePipe],
+  imports: [DatePipe],
   templateUrl: './alerts.html',
   styleUrl: './alerts.scss',
 })

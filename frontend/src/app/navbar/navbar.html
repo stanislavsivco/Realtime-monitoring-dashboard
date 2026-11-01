@@ -1,0 +1,16 @@
+<nav class="navbar">
+    <div class="navbar-logo">RMD</div>
+
+    <div class="navbar-links">
+        <a class="navbar-link" routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        <a class="navbar-link" routerLink="/alerts" routerLinkActive="active">Alerts</a>
+        @if (isAdmin()) {
+        <a class="navbar-link" routerLink="/admin" routerLinkActive="active">Devices</a>
+        }
+    </div>
+
+    <div class="navbar-actions">
+        <span class="navbar-user">{{ username() }} ({{ role() }})</span>
+        <button class="navbar-logout" type="button" (click)="logout()">Sign out</button>
+    </div>
+</nav>
