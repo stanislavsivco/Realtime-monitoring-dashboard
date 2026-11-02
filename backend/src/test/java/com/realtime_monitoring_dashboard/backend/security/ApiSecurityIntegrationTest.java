@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -422,10 +423,19 @@ class ApiSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    void apiDocsArePublic() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/v3/api-docs"))
-                .andExpect(status().isOk());
+    @ParameterizedTest
+    @ValueSource(strings = {"/v3/api-docs", "/swagger-ui.html", "/swagger-ui/index.html"})
+    void removedSwaggerPathsAreNotPublic(String path) throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(path))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/v3/api-docs", "/swagger-ui.html", "/swagger-ui/index.html"})
+    void removedSwaggerPathsDoNotExist(String path) throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(path)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isNotFound());
     }
 
     @Test

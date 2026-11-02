@@ -96,12 +96,12 @@ def load_or_register_device_id():
             time.sleep(5)
 
 
-def get_latency(host="1.1.1.1"):
+def get_latency(host="1.1.1.1", port=443):
     try:
-        start_time = time.time()
-        requests.get(f"http://{host}", timeout=2)
-        return round((time.time() - start_time) * 1000, 2)
-    except Exception:
+        start_time = time.perf_counter()
+        with socket.create_connection((host, port), timeout=2):
+            return round((time.perf_counter() - start_time) * 1000, 2)
+    except OSError:
         return None
 
 

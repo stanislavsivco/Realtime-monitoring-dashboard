@@ -15,17 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.realtime_monitoring_dashboard.backend.config.OpenApiConfig;
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
 import com.realtime_monitoring_dashboard.backend.service.DeviceService;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -34,66 +28,40 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/devices")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Devices", description = "Monitored devices")
 public class DeviceController {
 
     private final DeviceService deviceService;
 
-    @Operation(operationId = "getDevices", summary = "List of all devices",
-            description = "Returns all devices by status (CRITICAL → OFFLINE → WARNING → ONLINE)")
-    @ApiResponse(responseCode = "200", description = "List of devices returned")
     @GetMapping
     public ResponseEntity<List<DeviceDTO>> getAllDevices() {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
-    @Operation(operationId = "getDevice", summary = "Detail of a device by ID")
-    @ApiResponse(responseCode = "200", description = "Device found")
-    @ApiResponse(responseCode = "400", description = "Invalid device ID")
-    @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @GetMapping("/{id}")
-    public ResponseEntity<DeviceDTO> getDeviceByID(@Parameter(description = "Device ID") @PathVariable @Positive Long id) {
+    public ResponseEntity<DeviceDTO> getDeviceByID(@PathVariable @Positive Long id) {
         return ResponseEntity.ok(deviceService.getDeviceById(id));
     }
 
-    @Operation(operationId = "createDevice", summary = "Create new device")
-    @ApiResponse(responseCode = "201", description = "Device created")
-    @ApiResponse(responseCode = "400", description = "Invalid input data")
-    @ApiResponse(responseCode = "409", description = "Device with this name already exists")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DeviceDTO> createDevice(@RequestBody @Valid CreateDeviceRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(deviceService.createDevice(request));
     }
 
-    @Operation(operationId = "updateDevice", summary = "Edit existing device")
-    @ApiResponse(responseCode = "200", description = "Device edited")
-    @ApiResponse(responseCode = "400", description = "Invalid device ID or input data")
-    @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
-    @ApiResponse(responseCode = "409", description = "Device with this name already exists")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<DeviceDTO> updateDevice(@Parameter(description = "Device ID") @PathVariable @Positive Long id,
+    public ResponseEntity<DeviceDTO> updateDevice(@PathVariable @Positive Long id,
             @RequestBody @Valid CreateDeviceRequestDTO request) {
         return ResponseEntity.ok(deviceService.updateDevice(id, request));
     }
 
-    @Operation(operationId = "deleteDevice", summary = "Delete device")
-    @ApiResponse(responseCode = "204", description = "Device deleted")
-    @ApiResponse(responseCode = "400", description = "Invalid device ID")
-    @ApiResponse(responseCode = "404", description = "Device with this ID does not exist")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDevice(@Parameter(description = "Device ID") @PathVariable @Positive Long id) {
+    public ResponseEntity<Void> deleteDevice(@PathVariable @Positive Long id) {
         deviceService.deleteDevice(id);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(operationId = "registerAgent", summary = "Register or re-identify an agent by hostname",
-            description = "Returns existing device if hostname is already known, otherwise creates a new one")
-    @ApiResponse(responseCode = "200", description = "Device registered or found")
-    @ApiResponse(responseCode = "400", description = "Invalid input data")
-    @SecurityRequirement(name = OpenApiConfig.AGENT_KEY)
     @PostMapping("/register")
     public ResponseEntity<DeviceDTO> registerAgent(@RequestBody @Valid RegisterAgentRequestDTO request) {
         return ResponseEntity.ok(deviceService.registerAgent(request));
