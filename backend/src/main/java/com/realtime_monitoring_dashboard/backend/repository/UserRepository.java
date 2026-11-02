@@ -1,10 +1,12 @@
 package com.realtime_monitoring_dashboard.backend.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,6 +23,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByRole(Role role);
+
+    List<User> findByUsernameIn(Collection<String> usernames);
+
+    @Modifying
+    @Query("update User u set u.tokenVersion = u.tokenVersion + 1 where u.username = :username")
+    int incrementTokenVersion(@Param("username") String username);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.role = :role")

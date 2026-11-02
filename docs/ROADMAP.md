@@ -92,6 +92,13 @@
   - Those paths now return 401 without a token and 404 with a token, checked in ApiSecurityIntegrationTest
   - The agent measures latency with a TCP connect to 1.1.1.1:443 instead of a full HTTP request with redirects, which reported far too high values and could turn a healthy device CRITICAL
 - POST /api/devices returns 201 Created (branch 67_feature/openapi-operation-ids)
+- Token revocation and WebSocket session expiry (branch 78_feature/token-revocation-websocket-expiry):
+  - JWT carries tokenVersion from User, JwtAuthenticationFilter and StompAuthChannelInterceptor reject a different or missing version
+  - POST /api/auth/logout returns 204 and increases tokenVersion, every token of that user stops working immediately, tokens issued before this change also stop working
+  - WebSocketSessionMonitor checks open sessions every 30 seconds and closes those whose token expired or was revoked or whose user no longer exists, the client gets a STOMP ERROR frame
+  - token_version has a database default of 0, so ddl-auto can add it to existing users
+  - The frontend must call POST /api/auth/logout on Sign out, with the Authorization header
+  - Unit tests, TokenRevocationIntegrationTest (H2)
 - Fix API edge cases (branch 77_feature/fix-api-edge-cases):
   - GET /api/devices/{id}/metrics applies startDate or endDate on its own, before it ignored a single date
   - /metrics and /analytics return 404 for a device that does not exist
@@ -128,8 +135,6 @@
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
-- Close open WebSocket sessions when the JWT expires or the user is deleted (now the token is checked only on CONNECT)
-- Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
 - Frontend: role-aware UI, threshold management, analytics
 - Predictive trend engine
 - Simulation mode: smooth random-walk metrics with scripted incidents, "Simulated" badge in the UI

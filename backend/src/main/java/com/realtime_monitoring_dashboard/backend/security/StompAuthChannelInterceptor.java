@@ -30,6 +30,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final WebSocketSessionRegistry sessionRegistry;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -57,15 +58,17 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         try {
-            String username = jwtService.extractUsername(header.substring(BEARER_PREFIX.length()));
-            if (username == null) {
+            TokenClaims claims = jwtService.parse(header.substring(BEARER_PREFIX.length()));
+            if (claims.username() == null) {
                 throw new BadCredentialsException("Invalid token");
             }
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (!username.equals(userDetails.getUsername())) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(claims.username());
+            if (!claims.matches(userDetails)) {
                 throw new BadCredentialsException("Invalid token");
             }
+
+            sessionRegistry.register(accessor.getSessionId(), claims);
 
             return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {

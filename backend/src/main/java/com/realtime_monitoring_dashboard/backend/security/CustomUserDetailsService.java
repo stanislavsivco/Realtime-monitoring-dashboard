@@ -1,8 +1,11 @@
 package com.realtime_monitoring_dashboard.backend.security;
 
+import java.util.List;
+
 import com.realtime_monitoring_dashboard.backend.model.User;
 import com.realtime_monitoring_dashboard.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -19,10 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsernameIgnoreCase(UsernameNormalizer.normalize(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPassword())
-                .roles(user.getRole().name())
-                .build();
+        return new VersionedUser(user.getUsername(), user.getPassword(),
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())), user.getTokenVersion());
     }
 }

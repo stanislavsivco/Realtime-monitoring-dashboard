@@ -41,12 +41,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = header.substring(BEARER_PREFIX.length());
 
         try {
-            String username = jwtService.extractUsername(token);
+            TokenClaims claims = jwtService.parse(token);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            if (claims.username() != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(claims.username());
 
-                if (username.equals(userDetails.getUsername())) {
+                if (claims.matches(userDetails)) {
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
