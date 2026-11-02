@@ -56,6 +56,17 @@ class AlertServiceTest {
     }
 
     @Test
+    void createAlertTruncatesMessageThatDoesNotFitTheColumn() {
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        alertService.createAlert(device(), AlertSeverity.CRITICAL, "x".repeat(400));
+
+        ArgumentCaptor<Alert> captor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository).save(captor.capture());
+        assertThat(captor.getValue().getMessage()).hasSize(AlertService.MAX_MESSAGE_LENGTH).endsWith("...");
+    }
+
+    @Test
     void createAlertPersistsUnresolvedAlertWithGivenData() {
         Device device = device();
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));

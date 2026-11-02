@@ -25,7 +25,9 @@ import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MetricService {
@@ -118,7 +120,7 @@ public class MetricService {
                 metric.getLatencyMs() != null ? metric.getLatencyMs() : 0);
     }
 
-    @Scheduled(fixedRate = 10000)
+    @Scheduled(initialDelay = OFFLINE_THRESHOLD_SECONDS * 1000L, fixedRate = 10000)
     public void checkOfflineDevices() {
         List<Device> devices = deviceRepository.findAll();
         LocalDateTime threshold = LocalDateTime.now().minusSeconds(OFFLINE_THRESHOLD_SECONDS);
@@ -128,15 +130,35 @@ public class MetricService {
                 continue;
             }
 
-            Optional<Metric> latest = metricRepository.findTopByDeviceIdOrderByTimestampDesc(device.getId());
-            boolean isStale = latest.isEmpty() || latest.get().getTimestamp().isBefore(threshold);
-
-            if (isStale) {
-                device.setStatus(DeviceStatus.OFFLINE);
-                deviceRepository.save(device);
-                messagingTemplate.convertAndSend("/topic/devices", mapDeviceToDTO(device));
+            try {
+                checkDevice(device, threshold);
+            } catch (RuntimeException ex) {
+                log.error("Offline check failed for device {}", device.getId(), ex);
             }
         }
+    }
+
+    private void checkDevice(Device device, LocalDateTime threshold) {
+        Optional<Metric> latest = metricRepository.findTopByDeviceIdOrderByTimestampDesc(device.getId());
+        boolean isStale = latest.isEmpty() || latest.get().getTimestamp().isBefore(threshold);
+
+        if (isStale) {
+            markOffline(device, latest.isPresent());
+        }
+    }
+
+    private void markOffline(Device device, boolean hasReportedBefore) {
+        alertService.resolveActiveAlertsForDevice(device);
+
+        if (hasReportedBefore) {
+            alertService.createAlert(device, AlertSeverity.CRITICAL, String.format(
+                    "Device %s is offline: no metrics for over %d seconds",
+                    device.getName(), OFFLINE_THRESHOLD_SECONDS));
+        }
+
+        device.setStatus(DeviceStatus.OFFLINE);
+        deviceRepository.save(device);
+        messagingTemplate.convertAndSend("/topic/devices", mapDeviceToDTO(device));
     }
 
     public List<MetricDTO> getMetricsByDeviceId(Long deviceId) {
