@@ -28,6 +28,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
@@ -206,6 +207,7 @@ class MetricServiceTest {
         assertThat(device.getStatus()).isEqualTo(DeviceStatus.OFFLINE);
         verify(deviceRepository).save(device);
         verify(messagingTemplate).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
+        verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), any(String.class));
     }
 
     @Test
@@ -220,6 +222,30 @@ class MetricServiceTest {
 
         assertThat(device.getStatus()).isEqualTo(DeviceStatus.OFFLINE);
         verify(deviceRepository).save(device);
+        verify(alertService).resolveActiveAlertsForDevice(device);
+        verify(alertService).createAlert(eq(device), eq(AlertSeverity.CRITICAL), contains("Server-1 is offline"));
+    }
+
+    @Test
+    void checkOfflineDevicesContinuesWhenOneDeviceFails() {
+        Device failing = device(1L, "Server-1", DeviceStatus.ONLINE);
+        Device stale = device(2L, "Server-2", DeviceStatus.ONLINE);
+        when(deviceRepository.findAll()).thenReturn(List.of(failing, stale));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(1L)).thenThrow(new IllegalStateException("database error"));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(2L)).thenReturn(Optional.empty());
+        stubSavesToEchoArguments();
+
+        metricService.checkOfflineDevices();
+
+        assertThat(failing.getStatus()).isEqualTo(DeviceStatus.ONLINE);
+        assertThat(stale.getStatus()).isEqualTo(DeviceStatus.OFFLINE);
+    }
+
+    @Test
+    void checkOfflineDevicesWaitsAfterStartupForAgentsToReportAgain() throws NoSuchMethodException {
+        Scheduled scheduled = MetricService.class.getMethod("checkOfflineDevices").getAnnotation(Scheduled.class);
+
+        assertThat(scheduled.initialDelay()).isGreaterThanOrEqualTo(30_000L);
     }
 
     @Test
@@ -234,6 +260,7 @@ class MetricServiceTest {
         assertThat(device.getStatus()).isEqualTo(DeviceStatus.ONLINE);
         verify(deviceRepository, never()).save(any(Device.class));
         verify(messagingTemplate, never()).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
+        verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), any(String.class));
     }
 
     @Test
@@ -245,6 +272,7 @@ class MetricServiceTest {
 
         verify(metricRepository, never()).findTopByDeviceIdOrderByTimestampDesc(any(Long.class));
         verify(deviceRepository, never()).save(any(Device.class));
+        verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), any(String.class));
     }
 
     @Test

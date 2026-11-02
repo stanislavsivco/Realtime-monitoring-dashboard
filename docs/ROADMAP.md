@@ -92,6 +92,14 @@
   - Those paths now return 401 without a token and 404 with a token, checked in ApiSecurityIntegrationTest
   - The agent measures latency with a TCP connect to 1.1.1.1:443 instead of a full HTTP request with redirects, which reported far too high values and could turn a healthy device CRITICAL
 - POST /api/devices returns 201 Created (branch 67_feature/openapi-operation-ids)
+- Alert when a device goes offline (branch 76_feature/alert-when-device-goes-offline):
+  - checkOfflineDevices resolves old alerts and creates one CRITICAL alert, broadcast to /topic/alerts, the next metric resolves it through the normal status logic
+  - A device that never sent a metric goes OFFLINE without an alert, it did not fail
+  - The first check runs 30 seconds after startup, so a backend restart does not raise false alerts for healthy devices
+  - A failure on one device no longer stops the check for the others
+  - Alert messages are cut to 255 characters, a long device name no longer loses the metric or blocks the alert
+  - Index idx_alerts_device_resolved on alerts (device_id, resolved)
+  - Unit tests and OfflineAlertIntegrationTest (H2)
 - Frontend login (PR 55, Peter Supinsky):
   - authGuard on dashboard, device detail, alerts and admin routes, logged-in user is redirected away from login
   - Sign out button, the interceptor logs out, closes the WebSocket and redirects to login on 401
