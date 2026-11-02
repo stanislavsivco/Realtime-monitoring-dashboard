@@ -9,8 +9,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
-
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -41,7 +39,7 @@ class CreateDeviceRequestDTOValidationTest {
 
     @Test
     void validRequestHasNoViolations() {
-        CreateDeviceRequestDTO dto = new CreateDeviceRequestDTO("Server-1", "Server", "Kosice", DeviceStatus.ONLINE);
+        CreateDeviceRequestDTO dto = new CreateDeviceRequestDTO("Server-1", "Server", "Kosice");
 
         assertThat(validator.validate(dto)).isEmpty();
     }
@@ -49,21 +47,14 @@ class CreateDeviceRequestDTOValidationTest {
     @Test
     void emptyRequestViolatesEveryField() {
         assertThat(invalidProperties(new CreateDeviceRequestDTO()))
-                .containsExactlyInAnyOrder("name", "type", "location", "status");
+                .containsExactlyInAnyOrder("name", "type", "location");
     }
 
     @Test
     void blankStringsAreRejected() {
-        CreateDeviceRequestDTO dto = new CreateDeviceRequestDTO("   ", "", " ", DeviceStatus.ONLINE);
+        CreateDeviceRequestDTO dto = new CreateDeviceRequestDTO("   ", "", " ");
 
         assertThat(invalidProperties(dto)).containsExactlyInAnyOrder("name", "type", "location");
-    }
-
-    @Test
-    void missingStatusIsRejected() {
-        CreateDeviceRequestDTO dto = new CreateDeviceRequestDTO("Server-1", "Server", "Kosice", null);
-
-        assertThat(invalidProperties(dto)).containsExactly("status");
     }
 
     @Test
@@ -71,9 +62,9 @@ class CreateDeviceRequestDTOValidationTest {
         String tooLong = "x".repeat(256);
         String maxLength = "x".repeat(255);
 
-        assertThat(invalidProperties(new CreateDeviceRequestDTO(tooLong, tooLong, tooLong, DeviceStatus.ONLINE)))
+        assertThat(invalidProperties(new CreateDeviceRequestDTO(tooLong, tooLong, tooLong)))
                 .containsExactlyInAnyOrder("name", "type", "location");
-        assertThat(validator.validate(new CreateDeviceRequestDTO(maxLength, maxLength, maxLength, DeviceStatus.ONLINE)))
+        assertThat(validator.validate(new CreateDeviceRequestDTO(maxLength, maxLength, maxLength)))
                 .isEmpty();
     }
 }

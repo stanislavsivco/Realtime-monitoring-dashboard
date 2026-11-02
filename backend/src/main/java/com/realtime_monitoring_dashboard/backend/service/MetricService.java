@@ -161,13 +161,6 @@ public class MetricService {
         messagingTemplate.convertAndSend("/topic/devices", mapDeviceToDTO(device));
     }
 
-    public List<MetricDTO> getMetricsByDeviceId(Long deviceId) {
-        return metricRepository.findTop120ByDeviceIdOrderByTimestampAsc(deviceId)
-                .stream()
-                .map(this::mapToDTO)
-                .toList();
-    }
-
     public MetricDTO getLatestMetricByDeviceId(Long deviceId) {
         Metric metric = metricRepository.findTopByDeviceIdOrderByTimestampDesc(deviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -183,18 +176,37 @@ public class MetricService {
 
         if (startDate != null && endDate != null) {
             validateInterval(startDate, endDate);
-            return metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable)
-                    .map(this::mapToDTO);
         }
-        return metricRepository.findByDeviceId(deviceId, pageable).map(this::mapToDTO);
+        requireDevice(deviceId);
+        return findMetrics(deviceId, startDate, endDate, pageable).map(this::mapToDTO);
+    }
+
+    private Page<Metric> findMetrics(Long deviceId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        if (startDate != null && endDate != null) {
+            return metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable);
+        }
+        if (startDate != null) {
+            return metricRepository.findByDeviceIdAndTimestampGreaterThanEqual(deviceId, startDate, pageable);
+        }
+        if (endDate != null) {
+            return metricRepository.findByDeviceIdAndTimestampLessThanEqual(deviceId, endDate, pageable);
+        }
+        return metricRepository.findByDeviceId(deviceId, pageable);
     }
 
     public MetricSummaryDTO getMetricSummary(Long deviceId, LocalDateTime startDate, LocalDateTime endDate) {
         LocalDateTime end = endDate != null ? endDate : LocalDateTime.now();
         LocalDateTime start = startDate != null ? startDate : end.minusDays(DEFAULT_SUMMARY_DAYS);
         validateInterval(start, end);
+        requireDevice(deviceId);
 
         return metricRepository.getMetricSummary(deviceId, start, end);
+    }
+
+    private void requireDevice(Long deviceId) {
+        if (!deviceRepository.existsById(deviceId)) {
+            throw new ResourceNotFoundException("Device with ID " + deviceId + " does not exist");
+        }
     }
 
     private void validateInterval(LocalDateTime startDate, LocalDateTime endDate) {

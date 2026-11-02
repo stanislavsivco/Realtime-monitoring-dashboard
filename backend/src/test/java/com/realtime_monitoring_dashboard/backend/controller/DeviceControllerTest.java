@@ -41,7 +41,7 @@ import com.realtime_monitoring_dashboard.backend.service.DeviceService;
 class DeviceControllerTest {
 
     private static final String VALID_BODY = """
-            {"name": "Server-1", "type": "Server", "location": "Kosice", "status": "ONLINE"}
+            {"name": "Server-1", "type": "Server", "location": "Kosice"}
             """;
 
     @Mock
@@ -118,29 +118,27 @@ class DeviceControllerTest {
     @Test
     void createDeviceWithInvalidBodyReturns400WithFieldErrors() throws Exception {
         String invalid = """
-                {"name": "", "type": "", "location": "   ", "status": null}
+                {"name": "", "type": "", "location": "   "}
                 """;
 
         mockMvc.perform(post("/api/devices").contentType(MediaType.APPLICATION_JSON).content(invalid))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.name").exists())
                 .andExpect(jsonPath("$.fieldErrors.type").exists())
-                .andExpect(jsonPath("$.fieldErrors.location").exists())
-                .andExpect(jsonPath("$.fieldErrors.status").exists());
+                .andExpect(jsonPath("$.fieldErrors.location").exists());
 
         verifyNoInteractions(deviceService);
     }
 
     @Test
-    void createDeviceWithUnknownStatusReturns400() throws Exception {
+    void createDeviceIgnoresStatusSentByClient() throws Exception {
         String body = """
                 {"name": "n", "type": "t", "location": "l", "status": "BROKEN"}
                 """;
+        when(deviceService.createDevice(any(CreateDeviceRequestDTO.class))).thenReturn(dto(1L, "n"));
 
         mockMvc.perform(post("/api/devices").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest());
-
-        verifyNoInteractions(deviceService);
+                .andExpect(status().isCreated());
     }
 
     @Test

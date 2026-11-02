@@ -52,7 +52,8 @@ public class DeviceService {
                 .name(request.getName())
                 .type(request.getType())
                 .location(request.getLocation())
-                .status(request.getStatus())
+                .status(DeviceStatus.OFFLINE)
+                .simulated(false)
                 .build();
 
         DeviceDTO dto = mapToDTO(saveWithUniqueName(device));
@@ -70,7 +71,6 @@ public class DeviceService {
         device.setName(request.getName());
         device.setType(request.getType());
         device.setLocation(request.getLocation());
-        device.setStatus(request.getStatus());
 
         DeviceDTO dto = mapToDTO(saveWithUniqueName(device));
         messagingTemplate.convertAndSend("/topic/devices", dto);

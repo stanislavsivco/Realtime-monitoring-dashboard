@@ -122,10 +122,11 @@ class AlertServiceTest {
     }
 
     @Test
-    void getActiveAlertsMapsToDtos() {
-        when(alertRepository.findByResolvedFalseOrderByTimestampDesc()).thenReturn(List.of(alert(7L)));
+    void pagedAlertsAreMappedToDtos() {
+        Pageable pageable = PageRequest.of(0, 15);
+        when(alertRepository.findAlertsFiltered(null, null, pageable)).thenReturn(new PageImpl<>(List.of(alert(7L))));
 
-        List<AlertDTO> result = alertService.getActiveAlerts();
+        List<AlertDTO> result = alertService.getAlertsPaged(null, null, pageable).getContent();
 
         assertThat(result).hasSize(1);
         AlertDTO dto = result.get(0);

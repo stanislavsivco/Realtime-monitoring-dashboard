@@ -107,10 +107,10 @@ class DeviceServiceIntegrationTest {
 
     @Test
     void databaseRejectsDuplicateDeviceName() {
-        deviceService.createDevice(new CreateDeviceRequestDTO("unique-name", "Server", "DC1", DeviceStatus.ONLINE));
+        deviceService.createDevice(new CreateDeviceRequestDTO("unique-name", "Server", "DC1"));
 
         assertThrows(DeviceNameAlreadyExistsException.class, () -> deviceService.createDevice(
-                new CreateDeviceRequestDTO("unique-name", "Server", "DC2", DeviceStatus.ONLINE)));
+                new CreateDeviceRequestDTO("unique-name", "Server", "DC2")));
         assertThrows(DataIntegrityViolationException.class, () -> deviceRepository.saveAndFlush(Device.builder()
                 .name("unique-name").type("Server").location("DC3").status(DeviceStatus.ONLINE).build()));
     }

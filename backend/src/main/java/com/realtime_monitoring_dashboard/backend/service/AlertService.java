@@ -43,13 +43,6 @@ public class AlertService {
         messagingTemplate.convertAndSend("/topic/alerts", dto);
     }
 
-    public List<AlertDTO> getActiveAlerts() {
-        return alertRepository.findByResolvedFalseOrderByTimestampDesc()
-                .stream()
-                .map(this::mapToDTO)
-                .toList();
-    }
-
     @Transactional
     public AlertDTO acknowledgeAlert(Long alertId) {
         Alert alert = alertRepository.findById(alertId)

@@ -7,12 +7,17 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -55,7 +60,7 @@ public class GlobalExceptionHandler {
                 .fieldErrors(fieldErrors)
                 .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(error);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -87,6 +92,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
         return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex, WebRequest request) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Content-Type must be application/json", request);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ErrorResponse> handleNotAcceptable(HttpMediaTypeNotAcceptableException ex, WebRequest request) {
+        return build(HttpStatus.NOT_ACCEPTABLE, "This API can only respond with application/json", request);
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ErrorResponse> handleUnknownSortProperty(PropertyReferenceException ex, WebRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "Unknown sort property '" + ex.getPropertyName() + "'", request);
+    }
+
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidQuery(InvalidDataAccessApiUsageException ex, WebRequest request) {
+        log.warn("Invalid query while processing request [{}]: {}", extractPath(request), ex.getMostSpecificCause().getMessage());
+        return build(HttpStatus.BAD_REQUEST, "Invalid sort or filter parameter", request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -139,7 +165,7 @@ public class GlobalExceptionHandler {
                 .message(message)
                 .path(extractPath(request))
                 .build();
-        return ResponseEntity.status(status).body(error);
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(error);
     }
 
     private String extractPath(WebRequest request) {

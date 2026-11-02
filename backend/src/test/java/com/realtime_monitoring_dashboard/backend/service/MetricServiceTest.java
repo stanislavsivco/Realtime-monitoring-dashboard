@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -59,6 +60,11 @@ class MetricServiceTest {
 
     @InjectMocks
     private MetricService metricService;
+
+    @BeforeEach
+    void deviceExists() {
+        when(deviceRepository.existsById(any(Long.class))).thenReturn(true);
+    }
 
     private static Device device(Long id, String name, DeviceStatus status) {
         return Device.builder().id(id).name(name).type("Server").location("DC1").status(status).build();
@@ -295,16 +301,6 @@ class MetricServiceTest {
     }
 
     @Test
-    void getMetricsByDeviceIdKeepsRepositoryOrder() {
-        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
-        when(metricRepository.findTop120ByDeviceIdOrderByTimestampAsc(1L))
-                .thenReturn(List.of(metric(1L, device), metric(2L, device), metric(3L, device)));
-
-        assertThat(metricService.getMetricsByDeviceId(1L)).extracting(MetricDTO::getId)
-                .containsExactly(1L, 2L, 3L);
-    }
-
-    @Test
     void pagedMetricsUseDateFilterWhenBothDatesGiven() {
         Pageable pageable = PageRequest.of(0, 20);
         LocalDateTime start = LocalDateTime.of(2026, 9, 1, 0, 0);
@@ -330,13 +326,46 @@ class MetricServiceTest {
     }
 
     @Test
-    void pagedMetricsIgnoreFilterWhenOnlyOneDateGiven() {
+    void pagedMetricsFilterFromStartDateWhenOnlyStartGiven() {
         Pageable pageable = PageRequest.of(0, 20);
-        when(metricRepository.findByDeviceId(1L, pageable)).thenReturn(new PageImpl<>(List.of()));
+        LocalDateTime start = LocalDateTime.of(2026, 9, 1, 0, 0);
+        when(metricRepository.findByDeviceIdAndTimestampGreaterThanEqual(1L, start, pageable)).thenReturn(new PageImpl<>(List.of()));
 
-        metricService.getMetricsByDeviceIdPaged(1L, LocalDateTime.now(), null, pageable);
+        metricService.getMetricsByDeviceIdPaged(1L, start, null, pageable);
 
-        verify(metricRepository).findByDeviceId(1L, pageable);
+        verify(metricRepository).findByDeviceIdAndTimestampGreaterThanEqual(1L, start, pageable);
+        verify(metricRepository, never()).findByDeviceId(any(Long.class), any(Pageable.class));
+    }
+
+    @Test
+    void pagedMetricsFilterUntilEndDateWhenOnlyEndGiven() {
+        Pageable pageable = PageRequest.of(0, 20);
+        LocalDateTime end = LocalDateTime.of(2026, 9, 30, 0, 0);
+        when(metricRepository.findByDeviceIdAndTimestampLessThanEqual(1L, end, pageable)).thenReturn(new PageImpl<>(List.of()));
+
+        metricService.getMetricsByDeviceIdPaged(1L, null, end, pageable);
+
+        verify(metricRepository).findByDeviceIdAndTimestampLessThanEqual(1L, end, pageable);
+        verify(metricRepository, never()).findByDeviceId(any(Long.class), any(Pageable.class));
+    }
+
+    @Test
+    void pagedMetricsThrowWhenDeviceDoesNotExist() {
+        when(deviceRepository.existsById(99L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> metricService.getMetricsByDeviceIdPaged(99L, null, null, PageRequest.of(0, 20)));
+
+        verify(metricRepository, never()).findByDeviceId(any(Long.class), any(Pageable.class));
+    }
+
+    @Test
+    void summaryThrowsWhenDeviceDoesNotExist() {
+        when(deviceRepository.existsById(99L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> metricService.getMetricSummary(99L, null, null));
+
+        verify(metricRepository, never()).getMetricSummary(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class));
     }
 
     @Test
