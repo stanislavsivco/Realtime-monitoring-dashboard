@@ -84,7 +84,7 @@ class ApiSecurityIntegrationTest {
             {"username": "new.user", "password": "password123"}
             """;
     private static final String DEVICE_BODY = """
-            {"name": "Router-1", "type": "Router", "location": "Kosice", "status": "ONLINE"}
+            {"name": "Router-1", "type": "Router", "location": "Kosice"}
             """;
     private static final String THRESHOLD_BODY = """
             {"cpuWarning": 70, "cpuCritical": 90, "ramWarning": 70, "ramCritical": 90,

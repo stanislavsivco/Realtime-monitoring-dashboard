@@ -120,19 +120,18 @@ class DeviceServiceTest {
         });
 
         DeviceDTO result = deviceService.createDevice(
-                new CreateDeviceRequestDTO("Router-1", "Router", "Kosice", DeviceStatus.WARNING));
+                new CreateDeviceRequestDTO("Router-1", "Router", "Kosice"));
 
         ArgumentCaptor<Device> saved = ArgumentCaptor.forClass(Device.class);
         verify(deviceRepository).saveAndFlush(saved.capture());
         assertThat(saved.getValue().getName()).isEqualTo("Router-1");
         assertThat(saved.getValue().getType()).isEqualTo("Router");
         assertThat(saved.getValue().getLocation()).isEqualTo("Kosice");
-        assertThat(saved.getValue().getStatus()).isEqualTo(DeviceStatus.WARNING);
-
-        assertThat(saved.getValue().isSimulated()).isTrue();
+        assertThat(saved.getValue().getStatus()).isEqualTo(DeviceStatus.OFFLINE);
+        assertThat(saved.getValue().isSimulated()).isFalse();
 
         assertThat(result.getId()).isEqualTo(10L);
-        assertThat(result.isSimulated()).isTrue();
+        assertThat(result.isSimulated()).isFalse();
         verify(messagingTemplate).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
     }
 
@@ -142,7 +141,7 @@ class DeviceServiceTest {
 
         DeviceNameAlreadyExistsException ex = assertThrows(DeviceNameAlreadyExistsException.class,
                 () -> deviceService.createDevice(
-                        new CreateDeviceRequestDTO("Router-1", "Router", "Kosice", DeviceStatus.ONLINE)));
+                        new CreateDeviceRequestDTO("Router-1", "Router", "Kosice")));
 
         assertThat(ex.getMessage()).contains("Router-1");
         verify(deviceRepository, never()).saveAndFlush(any(Device.class));
@@ -157,7 +156,7 @@ class DeviceServiceTest {
 
         assertThrows(DeviceNameAlreadyExistsException.class,
                 () -> deviceService.createDevice(
-                        new CreateDeviceRequestDTO("Router-1", "Router", "Kosice", DeviceStatus.ONLINE)));
+                        new CreateDeviceRequestDTO("Router-1", "Router", "Kosice")));
 
         verifyNoInteractions(messagingTemplate);
     }
@@ -169,12 +168,12 @@ class DeviceServiceTest {
         when(deviceRepository.saveAndFlush(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
 
         DeviceDTO result = deviceService.updateDevice(5L,
-                new CreateDeviceRequestDTO("new-name", "Switch", "Bratislava", DeviceStatus.WARNING));
+                new CreateDeviceRequestDTO("new-name", "Switch", "Bratislava"));
 
         assertThat(existing.getName()).isEqualTo("new-name");
         assertThat(existing.getType()).isEqualTo("Switch");
         assertThat(existing.getLocation()).isEqualTo("Bratislava");
-        assertThat(existing.getStatus()).isEqualTo(DeviceStatus.WARNING);
+        assertThat(existing.getStatus()).isEqualTo(DeviceStatus.ONLINE);
         assertThat(result.getName()).isEqualTo("new-name");
         verify(messagingTemplate).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
     }
@@ -187,7 +186,7 @@ class DeviceServiceTest {
         when(deviceRepository.saveAndFlush(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
 
         DeviceDTO result = deviceService.updateDevice(5L,
-                new CreateDeviceRequestDTO("same-name", "Switch", "Bratislava", DeviceStatus.ONLINE));
+                new CreateDeviceRequestDTO("same-name", "Switch", "Bratislava"));
 
         assertThat(result.getName()).isEqualTo("same-name");
     }
@@ -199,7 +198,7 @@ class DeviceServiceTest {
         when(deviceRepository.existsByNameAndIdNot("taken", 5L)).thenReturn(true);
 
         assertThrows(DeviceNameAlreadyExistsException.class, () -> deviceService.updateDevice(5L,
-                new CreateDeviceRequestDTO("taken", "Switch", "Bratislava", DeviceStatus.ONLINE)));
+                new CreateDeviceRequestDTO("taken", "Switch", "Bratislava")));
 
         assertThat(existing.getName()).isEqualTo("old-name");
         verify(deviceRepository, never()).saveAndFlush(any(Device.class));
@@ -211,7 +210,7 @@ class DeviceServiceTest {
         when(deviceRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> deviceService.updateDevice(99L,
-                new CreateDeviceRequestDTO("n", "t", "l", DeviceStatus.ONLINE)));
+                new CreateDeviceRequestDTO("n", "t", "l")));
 
         verify(deviceRepository, never()).saveAndFlush(any(Device.class));
         verify(messagingTemplate, never()).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));

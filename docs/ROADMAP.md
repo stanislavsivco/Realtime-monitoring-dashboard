@@ -92,6 +92,14 @@
   - Those paths now return 401 without a token and 404 with a token, checked in ApiSecurityIntegrationTest
   - The agent measures latency with a TCP connect to 1.1.1.1:443 instead of a full HTTP request with redirects, which reported far too high values and could turn a healthy device CRITICAL
 - POST /api/devices returns 201 Created (branch 67_feature/openapi-operation-ids)
+- Fix API edge cases (branch 77_feature/fix-api-edge-cases):
+  - GET /api/devices/{id}/metrics applies startDate or endDate on its own, before it ignored a single date
+  - /metrics and /analytics return 404 for a device that does not exist
+  - An unknown sort property returns 400, a wrong Content-Type 415 and an unsupported Accept 406 instead of 500 or 401, errors are always written as JSON
+  - Devices created through POST /api/devices start OFFLINE with simulated = false, status is removed from CreateDeviceRequestDTO, a status sent by a client is ignored
+  - Unused getMetricsByDeviceId and getActiveAlerts with their queries removed
+  - Docker build uses -DskipTests, tests run in the pipeline and locally
+  - ApiEdgeCasesIntegrationTest (full application, H2)
 - Alert when a device goes offline (branch 76_feature/alert-when-device-goes-offline):
   - checkOfflineDevices resolves old alerts and creates one CRITICAL alert, broadcast to /topic/alerts, the next metric resolves it through the normal status logic
   - A device that never sent a metric goes OFFLINE without an alert, it did not fail
