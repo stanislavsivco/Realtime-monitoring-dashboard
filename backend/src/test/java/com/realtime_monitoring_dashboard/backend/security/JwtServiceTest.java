@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 
 import org.junit.jupiter.api.Test;
@@ -22,25 +23,56 @@ class JwtServiceTest {
 
     @Test
     void generatedTokenContainsUsername() {
-        String token = jwtService.generateToken("john", "VIEWER");
+        String token = jwtService.generateToken("john", "VIEWER", 0);
 
-        assertThat(jwtService.extractUsername(token)).isEqualTo("john");
+        assertThat(jwtService.parse(token).username()).isEqualTo("john");
+    }
+
+    @Test
+    void generatedTokenCarriesVersionAndExpiration() {
+        Instant before = Instant.now();
+
+        TokenClaims claims = jwtService.parse(jwtService.generateToken("john", "VIEWER", 7));
+
+        assertThat(claims.tokenVersion()).isEqualTo(7);
+        assertThat(claims.expiresAt()).isAfter(before.plusSeconds(58)).isBefore(before.plusSeconds(62));
+    }
+
+    @Test
+    void tokenWithoutVersionHasNullVersion() {
+        String oldToken = Jwts.builder()
+                .subject("john")
+                .expiration(new Date(System.currentTimeMillis() + 60_000))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+
+        assertThat(jwtService.parse(oldToken).tokenVersion()).isNull();
+    }
+
+    @Test
+    void tokenWithoutExpirationIsRejected() {
+        String neverExpires = Jwts.builder()
+                .subject("john")
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+
+        assertThatThrownBy(() -> jwtService.parse(neverExpires)).isInstanceOf(JwtException.class);
     }
 
     @Test
     void tokenSignedWithDifferentSecretIsRejected() {
-        String foreignToken = new JwtService(OTHER_SECRET, 60_000).generateToken("john", "ADMIN");
+        String foreignToken = new JwtService(OTHER_SECRET, 60_000).generateToken("john", "ADMIN", 0);
 
-        assertThatThrownBy(() -> jwtService.extractUsername(foreignToken))
+        assertThatThrownBy(() -> jwtService.parse(foreignToken))
                 .isInstanceOf(JwtException.class);
     }
 
     @Test
     void tamperedTokenIsRejected() {
-        String token = jwtService.generateToken("john", "VIEWER");
+        String token = jwtService.generateToken("john", "VIEWER", 0);
         String tampered = token.substring(0, token.length() - 2) + (token.endsWith("AA") ? "BB" : "AA");
 
-        assertThatThrownBy(() -> jwtService.extractUsername(tampered))
+        assertThatThrownBy(() -> jwtService.parse(tampered))
                 .isInstanceOf(JwtException.class);
     }
 
@@ -53,7 +85,7 @@ class JwtServiceTest {
                 .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
                 .compact();
 
-        assertThatThrownBy(() -> jwtService.extractUsername(expired))
+        assertThatThrownBy(() -> jwtService.parse(expired))
                 .isInstanceOf(ExpiredJwtException.class);
     }
 
@@ -61,7 +93,7 @@ class JwtServiceTest {
     void unsignedTokenIsRejected() {
         String unsigned = Jwts.builder().subject("john").compact();
 
-        assertThatThrownBy(() -> jwtService.extractUsername(unsigned))
+        assertThatThrownBy(() -> jwtService.parse(unsigned))
                 .isInstanceOf(JwtException.class);
     }
 

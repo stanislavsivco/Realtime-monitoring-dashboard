@@ -79,7 +79,7 @@ class ApiEdgeCasesIntegrationTest {
         userRepository.deleteAll();
 
         userRepository.save(User.builder().username("edge-admin").password("unused").role(Role.ADMIN).build());
-        adminAuthorization = "Bearer " + jwtService.generateToken("edge-admin", Role.ADMIN.name());
+        adminAuthorization = "Bearer " + jwtService.generateToken("edge-admin", Role.ADMIN.name(), 0);
 
         device = deviceRepository.save(Device.builder()
                 .name("Edge-Server").type("Server").location("DC1").status(DeviceStatus.ONLINE).simulated(false).build());

@@ -20,7 +20,7 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -31,21 +31,24 @@ class StompAuthChannelInterceptorTest {
 
     private static final String SECRET = "test-secret-that-is-long-enough-for-hs256";
     private static final String OTHER_SECRET = "another-secret-that-is-long-enough-hs256";
+    private static final String SESSION_ID = "session-1";
 
     private final JwtService jwtService = new JwtService(SECRET, 60_000);
     private final UserDetailsService userDetailsService = username -> {
         if (!"john".equals(username)) {
             throw new UsernameNotFoundException("User not found: " + username);
         }
-        return User.withUsername("john").password("x").roles("VIEWER").build();
+        return new VersionedUser("john", "x", List.of(new SimpleGrantedAuthority("ROLE_VIEWER")), 0);
     };
+    private final WebSocketSessionRegistry sessionRegistry = new WebSocketSessionRegistry();
     private final StompAuthChannelInterceptor interceptor =
-            new StompAuthChannelInterceptor(jwtService, userDetailsService);
+            new StompAuthChannelInterceptor(jwtService, userDetailsService, sessionRegistry);
     private final MessageChannel channel = (message, timeout) -> true;
 
     private static StompHeaderAccessor accessor(StompCommand command) {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(command);
         accessor.setLeaveMutable(true);
+        accessor.setSessionId(SESSION_ID);
         return accessor;
     }
 
@@ -72,7 +75,7 @@ class StompAuthChannelInterceptorTest {
 
     @Test
     void connectWithValidTokenSetsAuthenticatedUser() {
-        StompHeaderAccessor accessor = connectWith("Bearer " + jwtService.generateToken("john", "VIEWER"));
+        StompHeaderAccessor accessor = connectWith("Bearer " + jwtService.generateToken("john", "VIEWER", 0));
 
         interceptor.preSend(message(accessor), channel);
 
@@ -86,7 +89,7 @@ class StompAuthChannelInterceptorTest {
     @Test
     void stompCommandIsAuthenticatedLikeConnect() {
         StompHeaderAccessor accessor = accessor(StompCommand.STOMP);
-        accessor.addNativeHeader("Authorization", "Bearer " + jwtService.generateToken("john", "VIEWER"));
+        accessor.addNativeHeader("Authorization", "Bearer " + jwtService.generateToken("john", "VIEWER", 0));
 
         interceptor.preSend(message(accessor), channel);
 
@@ -123,7 +126,7 @@ class StompAuthChannelInterceptorTest {
 
     @Test
     void connectWithTokenSignedByAnotherKeyIsRejected() {
-        String foreign = new JwtService(OTHER_SECRET, 60_000).generateToken("john", "ADMIN");
+        String foreign = new JwtService(OTHER_SECRET, 60_000).generateToken("john", "ADMIN", 0);
 
         assertThatThrownBy(() -> interceptor.preSend(message(connectWith("Bearer " + foreign)), channel))
                 .isInstanceOf(BadCredentialsException.class);
@@ -144,8 +147,39 @@ class StompAuthChannelInterceptorTest {
     }
 
     @Test
+    void connectWithValidTokenRegistersSession() {
+        String token = jwtService.generateToken("john", "VIEWER", 0);
+
+        interceptor.preSend(message(connectWith("Bearer " + token)), channel);
+
+        assertThat(sessionRegistry.snapshot()).containsKey(SESSION_ID);
+        assertThat(sessionRegistry.snapshot().get(SESSION_ID).username()).isEqualTo("john");
+    }
+
+    @Test
+    void connectWithRevokedTokenIsRejectedAndNotRegistered() {
+        String revoked = jwtService.generateToken("john", "VIEWER", 7);
+
+        assertThatThrownBy(() -> interceptor.preSend(message(connectWith("Bearer " + revoked)), channel))
+                .isInstanceOf(BadCredentialsException.class);
+        assertThat(sessionRegistry.snapshot()).isEmpty();
+    }
+
+    @Test
+    void connectWithTokenWithoutVersionIsRejected() {
+        String oldToken = Jwts.builder()
+                .subject("john")
+                .expiration(new Date(System.currentTimeMillis() + 60_000))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+
+        assertThatThrownBy(() -> interceptor.preSend(message(connectWith("Bearer " + oldToken)), channel))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    @Test
     void connectForDeletedUserIsRejected() {
-        String token = jwtService.generateToken("ghost", "VIEWER");
+        String token = jwtService.generateToken("ghost", "VIEWER", 0);
 
         assertThatThrownBy(() -> interceptor.preSend(message(connectWith("Bearer " + token)), channel))
                 .isInstanceOf(BadCredentialsException.class);
