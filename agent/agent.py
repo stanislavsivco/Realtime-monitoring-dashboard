@@ -64,12 +64,29 @@ def register_device():
     return device_id
 
 
-def load_or_register_device_id():
-    if os.path.exists(DEVICE_ID_FILE):
+def read_cached_device_id():
+    if not os.path.exists(DEVICE_ID_FILE):
+        return None
+
+    try:
         with open(DEVICE_ID_FILE, "r") as f:
             device_id = int(f.read().strip())
-            print(f"[Cached] Using existing Device ID {device_id}")
-            return device_id
+    except ValueError:
+        print(f"[Invalid Cache] {DEVICE_ID_FILE} does not contain a number. Registering again...")
+        return None
+
+    if device_id <= 0:
+        print(f"[Invalid Cache] Device ID {device_id} is not a positive number. Registering again...")
+        return None
+
+    return device_id
+
+
+def load_or_register_device_id():
+    device_id = read_cached_device_id()
+    if device_id is not None:
+        print(f"[Cached] Using existing Device ID {device_id}")
+        return device_id
 
     while True:
         try:
