@@ -5,7 +5,6 @@
 - Python agent with auto-registration, ingest endpoint, OFFLINE detection
 - Per-device thresholds and DeviceStatusCalculator
 - WebSocket live updates
-- Swagger / OpenAPI
 - Dashboard in Angular showing devices and the agent
 - Azure Pipelines mirror to GitHub for Render
 - JWT authentication (branch 45_46_feature/jwt-auth):
@@ -45,10 +44,6 @@
 - Agent API key and CORS hardening (branch 53_SecurityHardening):
   - AgentApiKeyFilter checks X-Agent-Key on /api/devices/register and /api/devices/ingest with constant-time comparison
   - CORS restricted to FRONTEND_ORIGIN instead of wildcard
-- Swagger authentication (branch 54_feature/device-delete-and-registration-fixes):
-  - OpenApiConfig adds bearerAuth (JWT) as the default requirement and agentKey (X-Agent-Key header) schemes, Authorize button in Swagger UI
-  - Auth endpoints marked as public, /api/devices/register and /api/devices/ingest marked with agentKey
-  - AgentApiKeyFilter.HEADER shared with the OpenAPI config, OpenApiConfigTest added
 - Neon connection (PR 42, branch 52-connection-to-Neon):
   - docker-compose.yml reads backend configuration from devops/.env (gitignored), connects to Neon
   - docker-compose.local-db.yml override for a local PostgreSQL container
@@ -73,7 +68,6 @@
   - startDate after endDate returns 400 for metric history and analytics, analytics with only endDate uses the 7 days before it
   - Reading thresholds no longer writes to the database, defaults are returned until an admin saves custom values
   - Device name, type, location and agent hostname limited to 255 characters (400 instead of a database error)
-  - Swagger descriptions for metric history, analytics and ingest
   - ThresholdServiceTest added, metric, controller and DTO tests extended
 - WebSocket authentication and origin restriction (branch 61_feature/websocket-authentication-and-origin-restriction):
   - /ws accepts only origins from FRONTEND_ORIGIN (other origins get 403 on the handshake and on SockJS)
@@ -93,16 +87,11 @@
 - Local database credentials from .env (PR 51, Stano):
   - docker-compose.local-db.yml reads LOCAL_DB_USERNAME and LOCAL_DB_PASSWORD, Compose stops when they are missing
   - .env.example explains how to run with Neon or the local database, including down -v after a password change
-- OpenAPI operationIds (branch 67_feature/openapi-operation-ids):
-  - Every endpoint has an explicit, stable operationId (getDevices, createDevice, getMetricHistory, ...)
-  - 429 documented on login and register
-  - Paging exposed as page, size and sort query parameters, success responses documented as application/json
-  - POST /api/devices returns 201 Created
-- Simplify OpenAPI configuration (branch 71_feature/simplify-openapi):
-  - OpenApiConfig keeps only the API info and the bearerAuth and agentKey schemes for the Authorize button, the customizers that added 401/403 and the ErrorResponse schema to every operation are removed
-  - docs/openapi.json, OpenApiSpecTest and ControllerOperationIdTest are removed, Swagger generates the spec at runtime on /v3/api-docs
-  - Fixes docker compose up --build, OpenApiSpecTest failed there because docs/ is outside the Docker build context
-  - Controller annotations (@Operation with operationId, @ApiResponse, @Parameter, @SecurityRequirement) stay unchanged
+- Remove Swagger and fix agent latency (branch 75_feature/remove-swagger-fix-agent-latency):
+  - Swagger removed because the team tests the API in Postman: springdoc dependency, OpenApiConfig and its test, all OpenAPI annotations on the controllers, the public /v3/api-docs and /swagger-ui paths
+  - Those paths now return 401 without a token and 404 with a token, checked in ApiSecurityIntegrationTest
+  - The agent measures latency with a TCP connect to 1.1.1.1:443 instead of a full HTTP request with redirects, which reported far too high values and could turn a healthy device CRITICAL
+- POST /api/devices returns 201 Created (branch 67_feature/openapi-operation-ids)
 - Frontend login (PR 55, Peter Supinsky):
   - authGuard on dashboard, device detail, alerts and admin routes, logged-in user is redirected away from login
   - Sign out button, the interceptor logs out, closes the WebSocket and redirects to login on 401
@@ -112,7 +101,7 @@
   - Anonymous gets 401, VIEWER gets 403 on every ADMIN endpoint and the service is never called, ADMIN is allowed everywhere
   - Agent endpoints need a valid X-Agent-Key (a JWT does not replace it, the key does not open user endpoints)
   - Malformed, foreign-signed and expired tokens, deleted users and a Basic header are treated as anonymous, the role claim in the token is ignored, a demoted admin loses access with the same token
-  - Unknown paths require authentication, /v3/api-docs stays public
+  - Unknown paths require authentication
   - RegisterRoleIntegrationTest (real AuthService and H2): registration with "role": "ADMIN" or similar fields in the body still creates a VIEWER
 - Recalculate device status after threshold change (branch 68_feature/recalculate-status-after-threshold-change):
   - ThresholdService publishes ThresholdUpdatedEvent after saving, MetricService listens and recalculates the status from the latest metric with the same status and alert logic as for a new metric
@@ -123,7 +112,6 @@
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
-- Swagger disabled in production via SWAGGER_ENABLED switch
 - Close open WebSocket sessions when the JWT expires or the user is deleted (now the token is checked only on CONNECT)
 - Token revocation: shorter access token with refresh token, or tokenVersion on User checked in JwtAuthenticationFilter (logout, password change, forced sign-out)
 - Frontend: role-aware UI, threshold management, analytics

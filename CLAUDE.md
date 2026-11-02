@@ -3,7 +3,7 @@
 Real-time monitoring of network devices. School project for the Deutsche Telekom / AT&T internship presentation. Goal: production-grade quality with edge cases handled.
 
 ## Structure
-- backend/  Spring Boot 4.1.1, Java 21, Maven, PostgreSQL, Lombok, springdoc, jjwt 0.12.6
+- backend/  Spring Boot 4.1.1, Java 21, Maven, PostgreSQL, Lombok, jjwt 0.12.6
 - frontend/ Angular
 - agent/    Python agent (psutil, requests) with automatic device registration
 - devops/   docker-compose, Azure Pipelines
@@ -12,7 +12,6 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 - Package com.realtime_monitoring_dashboard.backend: controller, service, repository, model, dto, exception, security, config
 - Layers: controller -> service -> repository. Controllers never return entities, always DTOs.
 - Validation with @Valid / @Validated. Errors are handled by GlobalExceptionHandler (ErrorResponse).
-- Every endpoint has @Operation with an explicit operationId. Swagger generates the spec at runtime (/v3/api-docs, /swagger-ui.html), there is no committed openapi.json.
 - Device status: ONLINE, WARNING, CRITICAL, computed from the per-device Threshold (DeviceStatusCalculator). After a threshold change it is recalculated from the latest metric (ThresholdUpdatedEvent, MetricService.onThresholdUpdated). OFFLINE is set by checkOfflineDevices when no metric arrives for 30 seconds.
 - WebSocket (STOMP): endpoint /ws, topics /topic/metrics, /topic/devices, /topic/devices/delete, /topic/alerts. Only FRONTEND_ORIGIN may connect, CONNECT needs the JWT (Authorization: Bearer), clients may only SUBSCRIBE to /topic/**, SEND is rejected (StompAuthChannelInterceptor).
 - Demo data (DataSeeder, MetricSimulator) runs only when SIMULATION_ENABLED=true, and the generator only for devices with simulated = true.

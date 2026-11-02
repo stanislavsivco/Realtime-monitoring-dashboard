@@ -16,10 +16,6 @@ import com.realtime_monitoring_dashboard.backend.dto.ChangeRoleRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.UserDTO;
 import com.realtime_monitoring_dashboard.backend.service.UserService;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -29,26 +25,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Validated
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Users", description = "User management (admin only)")
 public class UserController {
 
     private final UserService userService;
 
-    @Operation(operationId = "getUsers", summary = "List all users")
-    @ApiResponse(responseCode = "200", description = "User list returned")
     @GetMapping
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @Operation(operationId = "changeUserRole", summary = "Change a user's role")
-    @ApiResponse(responseCode = "200", description = "Role updated")
-    @ApiResponse(responseCode = "400", description = "Invalid user ID or role")
-    @ApiResponse(responseCode = "404", description = "User with this ID does not exist")
-    @ApiResponse(responseCode = "409", description = "The last admin cannot lose the ADMIN role")
     @PatchMapping("/{id}/role")
     public ResponseEntity<UserDTO> changeRole(
-            @Parameter(description = "User ID") @PathVariable @Positive Long id,
+            @PathVariable @Positive Long id,
             @RequestBody @Valid ChangeRoleRequestDTO request) {
         return ResponseEntity.ok(userService.changeUserRole(id, request.getRole()));
     }
