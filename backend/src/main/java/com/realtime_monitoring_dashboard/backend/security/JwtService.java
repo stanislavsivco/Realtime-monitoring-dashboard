@@ -8,14 +8,17 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtService {
 
     static final int MIN_SECRET_BYTES = 32;
+    private static final String TOKEN_VERSION_CLAIM = "tokenVersion";
 
     private final SecretKey signingKey;
     private final JwtParser parser;
@@ -41,19 +44,24 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(String username, String role) {
+    public String generateToken(String username, String role, int tokenVersion) {
         Date now = new Date();
 
         return Jwts.builder()
                 .subject(username)
                 .claim("role", role)
+                .claim(TOKEN_VERSION_CLAIM, tokenVersion)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(signingKey)
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        return parser.parseSignedClaims(token).getPayload().getSubject();
+    public TokenClaims parse(String token) {
+        Claims claims = parser.parseSignedClaims(token).getPayload();
+        if (claims.getExpiration() == null) {
+            throw new MalformedJwtException("Token has no expiration");
+        }
+        return new TokenClaims(claims.getSubject(), claims.get(TOKEN_VERSION_CLAIM, Integer.class), claims.getExpiration().toInstant());
     }
 }

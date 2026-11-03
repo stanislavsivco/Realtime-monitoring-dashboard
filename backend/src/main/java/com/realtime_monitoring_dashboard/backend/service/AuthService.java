@@ -15,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -58,12 +59,17 @@ public class AuthService {
         return buildResponse(user);
     }
 
+    @Transactional
+    public void logout(String username) {
+        userRepository.incrementTokenVersion(username);
+    }
+
     private UsernameAlreadyExistsException usernameTaken(String username) {
         return new UsernameAlreadyExistsException("Username '" + username + "' is already taken");
     }
 
     private AuthResponseDTO buildResponse(User user) {
-        String token = jwtService.generateToken(user.getUsername(), user.getRole().name());
+        String token = jwtService.generateToken(user.getUsername(), user.getRole().name(), user.getTokenVersion());
         return AuthResponseDTO.builder()
                 .token(token)
                 .username(user.getUsername())

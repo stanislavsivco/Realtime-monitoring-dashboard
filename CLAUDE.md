@@ -12,8 +12,8 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 - Package com.realtime_monitoring_dashboard.backend: controller, service, repository, model, dto, exception, security, config
 - Layers: controller -> service -> repository. Controllers never return entities, always DTOs.
 - Validation with @Valid / @Validated. Errors are handled by GlobalExceptionHandler (ErrorResponse).
-- Device status: ONLINE, WARNING, CRITICAL, computed from the per-device Threshold (DeviceStatusCalculator). After a threshold change it is recalculated from the latest metric (ThresholdUpdatedEvent, MetricService.onThresholdUpdated). OFFLINE is set by checkOfflineDevices when no metric arrives for 30 seconds.
-- WebSocket (STOMP): endpoint /ws, topics /topic/metrics, /topic/devices, /topic/devices/delete, /topic/alerts. Only FRONTEND_ORIGIN may connect, CONNECT needs the JWT (Authorization: Bearer), clients may only SUBSCRIBE to /topic/**, SEND is rejected (StompAuthChannelInterceptor).
+- Device status is never set by a client. A device created through the API starts OFFLINE with simulated = false. ONLINE, WARNING, CRITICAL are computed from the per-device Threshold (DeviceStatusCalculator). After a threshold change it is recalculated from the latest metric (ThresholdUpdatedEvent, MetricService.onThresholdUpdated). OFFLINE is set by checkOfflineDevices when no metric arrives for 30 seconds, this resolves old alerts and creates a CRITICAL alert (not for a device that never reported, the first check runs 30 seconds after startup). The next metric resolves it.
+- WebSocket (STOMP): endpoint /ws, topics /topic/metrics, /topic/devices, /topic/devices/delete, /topic/alerts. Only FRONTEND_ORIGIN may connect, CONNECT needs the JWT (Authorization: Bearer), clients may only SUBSCRIBE to /topic/**, SEND is rejected (StompAuthChannelInterceptor). Every 30 seconds WebSocketSessionMonitor closes sessions whose token expired or was revoked, or whose user no longer exists.
 - Demo data (DataSeeder, MetricSimulator) runs only when SIMULATION_ENABLED=true, and the generator only for devices with simulated = true.
 - Metrics older than METRIC_RETENTION_DAYS are deleted every hour (MetricRetentionService).
 - POST /api/auth/login and /api/auth/register are rate limited per IP (AuthRateLimitFilter), over the limit they return 429 with Retry-After.
@@ -23,6 +23,7 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 - DB_PASSWORD and JWT_SECRET have no default value.
 - Public registration (/api/auth/register) always creates the VIEWER role. Only ADMIN can change roles.
 - The initial admin is created at startup from ADMIN_USERNAME and ADMIN_PASSWORD. There is no default password.
+- Tokens carry tokenVersion from User. POST /api/auth/logout increases it, which revokes every token of that user immediately.
 - VIEWER is read-only. Changes (devices, thresholds, users) are ADMIN-only via @PreAuthorize.
 - /api/devices/register and /api/devices/ingest require the X-Agent-Key header (AGENT_API_KEY, AgentApiKeyFilter), not a JWT.
 

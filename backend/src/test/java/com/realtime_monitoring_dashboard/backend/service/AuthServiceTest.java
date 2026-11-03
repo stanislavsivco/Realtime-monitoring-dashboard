@@ -53,7 +53,7 @@ class AuthServiceTest {
         when(userRepository.existsByUsernameIgnoreCase("john")).thenReturn(false);
         when(passwordEncoder.encode("securepass1")).thenReturn("hashed");
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(jwtService.generateToken("john", "VIEWER")).thenReturn("token");
+        when(jwtService.generateToken("john", "VIEWER", 0)).thenReturn("token");
 
         AuthResponseDTO response = authService.register(new RegisterRequestDTO("John", "securepass1"));
 
@@ -92,7 +92,7 @@ class AuthServiceTest {
     void loginNormalizesUsernameBeforeAuthentication() {
         User user = User.builder().id(1L).username("john").password("hashed").role(Role.VIEWER).build();
         when(userRepository.findByUsernameIgnoreCase("john")).thenReturn(Optional.of(user));
-        when(jwtService.generateToken("john", "VIEWER")).thenReturn("token");
+        when(jwtService.generateToken("john", "VIEWER", 0)).thenReturn("token");
 
         AuthResponseDTO response = authService.login(new LoginRequestDTO("  JOHN ", "securepass1"));
 
@@ -108,5 +108,12 @@ class AuthServiceTest {
         User user = User.builder().id(1L).username("john").password("secret-hash").role(Role.VIEWER).build();
 
         assertThat(user.toString()).doesNotContain("secret-hash");
+    }
+
+    @Test
+    void logoutIncreasesTokenVersion() {
+        authService.logout("john");
+
+        verify(userRepository).incrementTokenVersion("john");
     }
 }

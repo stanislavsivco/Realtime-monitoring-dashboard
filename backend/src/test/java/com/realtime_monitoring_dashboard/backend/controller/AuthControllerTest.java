@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -154,5 +155,14 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(authService);
+    }
+
+    @Test
+    void logoutRevokesTokensOfCurrentUserAndReturns204() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .principal(new UsernamePasswordAuthenticationToken("john", null)))
+                .andExpect(status().isNoContent());
+
+        verify(authService).logout("john");
     }
 }

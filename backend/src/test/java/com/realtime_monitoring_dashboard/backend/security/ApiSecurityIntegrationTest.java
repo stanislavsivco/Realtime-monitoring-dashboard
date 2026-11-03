@@ -84,7 +84,7 @@ class ApiSecurityIntegrationTest {
             {"username": "new.user", "password": "password123"}
             """;
     private static final String DEVICE_BODY = """
-            {"name": "Router-1", "type": "Router", "location": "Kosice", "status": "ONLINE"}
+            {"name": "Router-1", "type": "Router", "location": "Kosice"}
             """;
     private static final String THRESHOLD_BODY = """
             {"cpuWarning": 70, "cpuCritical": 90, "ramWarning": 70, "ramCritical": 90,
@@ -123,6 +123,7 @@ class ApiSecurityIntegrationTest {
     private static final List<Endpoint> ENDPOINTS = List.of(
             new Endpoint(HttpMethod.POST, "/api/auth/login", Access.PUBLIC, LOGIN_BODY),
             new Endpoint(HttpMethod.POST, "/api/auth/register", Access.PUBLIC, REGISTER_BODY),
+            new Endpoint(HttpMethod.POST, "/api/auth/logout", Access.AUTHENTICATED, null),
             new Endpoint(HttpMethod.GET, "/api/devices", Access.AUTHENTICATED, null),
             new Endpoint(HttpMethod.GET, "/api/devices/{id}", Access.AUTHENTICATED, null),
             new Endpoint(HttpMethod.POST, "/api/devices", Access.ADMIN, DEVICE_BODY),
@@ -206,8 +207,8 @@ class ApiSecurityIntegrationTest {
         userRepository.save(User.builder().username(ADMIN_USERNAME).password("unused").role(Role.ADMIN).build());
         userRepository.save(User.builder().username(VIEWER_USERNAME).password("unused").role(Role.VIEWER).build());
 
-        adminToken = jwtService.generateToken(ADMIN_USERNAME, Role.ADMIN.name());
-        viewerToken = jwtService.generateToken(VIEWER_USERNAME, Role.VIEWER.name());
+        adminToken = jwtService.generateToken(ADMIN_USERNAME, Role.ADMIN.name(), 0);
+        viewerToken = jwtService.generateToken(VIEWER_USERNAME, Role.VIEWER.name(), 0);
     }
 
     private static String bearer(String token) {
@@ -264,7 +265,7 @@ class ApiSecurityIntegrationTest {
                     .expiration(new Date(now - 3_600_000))
                     .signWith(ownKey)
                     .compact());
-            case UNKNOWN_USER_TOKEN -> bearer(jwtService.generateToken("ghost-user", "ADMIN"));
+            case UNKNOWN_USER_TOKEN -> bearer(jwtService.generateToken("ghost-user", "ADMIN", 0));
             case BASIC_SCHEME -> "Basic c2VjLWFkbWluOnVudXNlZA==";
         };
     }
@@ -381,7 +382,7 @@ class ApiSecurityIntegrationTest {
 
     @Test
     void roleClaimInsideTheTokenIsIgnored() throws Exception {
-        String viewerTokenClaimingAdmin = jwtService.generateToken(VIEWER_USERNAME, Role.ADMIN.name());
+        String viewerTokenClaimingAdmin = jwtService.generateToken(VIEWER_USERNAME, Role.ADMIN.name(), 0);
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/devices/1")
                         .header(HttpHeaders.AUTHORIZATION, bearer(viewerTokenClaimingAdmin)))

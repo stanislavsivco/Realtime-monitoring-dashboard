@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -28,6 +29,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
@@ -58,6 +60,11 @@ class MetricServiceTest {
 
     @InjectMocks
     private MetricService metricService;
+
+    @BeforeEach
+    void deviceExists() {
+        when(deviceRepository.existsById(any(Long.class))).thenReturn(true);
+    }
 
     private static Device device(Long id, String name, DeviceStatus status) {
         return Device.builder().id(id).name(name).type("Server").location("DC1").status(status).build();
@@ -206,6 +213,7 @@ class MetricServiceTest {
         assertThat(device.getStatus()).isEqualTo(DeviceStatus.OFFLINE);
         verify(deviceRepository).save(device);
         verify(messagingTemplate).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
+        verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), any(String.class));
     }
 
     @Test
@@ -220,6 +228,30 @@ class MetricServiceTest {
 
         assertThat(device.getStatus()).isEqualTo(DeviceStatus.OFFLINE);
         verify(deviceRepository).save(device);
+        verify(alertService).resolveActiveAlertsForDevice(device);
+        verify(alertService).createAlert(eq(device), eq(AlertSeverity.CRITICAL), contains("Server-1 is offline"));
+    }
+
+    @Test
+    void checkOfflineDevicesContinuesWhenOneDeviceFails() {
+        Device failing = device(1L, "Server-1", DeviceStatus.ONLINE);
+        Device stale = device(2L, "Server-2", DeviceStatus.ONLINE);
+        when(deviceRepository.findAll()).thenReturn(List.of(failing, stale));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(1L)).thenThrow(new IllegalStateException("database error"));
+        when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(2L)).thenReturn(Optional.empty());
+        stubSavesToEchoArguments();
+
+        metricService.checkOfflineDevices();
+
+        assertThat(failing.getStatus()).isEqualTo(DeviceStatus.ONLINE);
+        assertThat(stale.getStatus()).isEqualTo(DeviceStatus.OFFLINE);
+    }
+
+    @Test
+    void checkOfflineDevicesWaitsAfterStartupForAgentsToReportAgain() throws NoSuchMethodException {
+        Scheduled scheduled = MetricService.class.getMethod("checkOfflineDevices").getAnnotation(Scheduled.class);
+
+        assertThat(scheduled.initialDelay()).isGreaterThanOrEqualTo(30_000L);
     }
 
     @Test
@@ -234,6 +266,7 @@ class MetricServiceTest {
         assertThat(device.getStatus()).isEqualTo(DeviceStatus.ONLINE);
         verify(deviceRepository, never()).save(any(Device.class));
         verify(messagingTemplate, never()).convertAndSend(eq("/topic/devices"), any(DeviceDTO.class));
+        verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), any(String.class));
     }
 
     @Test
@@ -245,6 +278,7 @@ class MetricServiceTest {
 
         verify(metricRepository, never()).findTopByDeviceIdOrderByTimestampDesc(any(Long.class));
         verify(deviceRepository, never()).save(any(Device.class));
+        verify(alertService, never()).createAlert(any(Device.class), any(AlertSeverity.class), any(String.class));
     }
 
     @Test
@@ -264,16 +298,6 @@ class MetricServiceTest {
         when(metricRepository.findTopByDeviceIdOrderByTimestampDesc(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> metricService.getLatestMetricByDeviceId(99L));
-    }
-
-    @Test
-    void getMetricsByDeviceIdKeepsRepositoryOrder() {
-        Device device = device(1L, "Server-1", DeviceStatus.ONLINE);
-        when(metricRepository.findTop120ByDeviceIdOrderByTimestampAsc(1L))
-                .thenReturn(List.of(metric(1L, device), metric(2L, device), metric(3L, device)));
-
-        assertThat(metricService.getMetricsByDeviceId(1L)).extracting(MetricDTO::getId)
-                .containsExactly(1L, 2L, 3L);
     }
 
     @Test
@@ -302,13 +326,46 @@ class MetricServiceTest {
     }
 
     @Test
-    void pagedMetricsIgnoreFilterWhenOnlyOneDateGiven() {
+    void pagedMetricsFilterFromStartDateWhenOnlyStartGiven() {
         Pageable pageable = PageRequest.of(0, 20);
-        when(metricRepository.findByDeviceId(1L, pageable)).thenReturn(new PageImpl<>(List.of()));
+        LocalDateTime start = LocalDateTime.of(2026, 9, 1, 0, 0);
+        when(metricRepository.findByDeviceIdAndTimestampGreaterThanEqual(1L, start, pageable)).thenReturn(new PageImpl<>(List.of()));
 
-        metricService.getMetricsByDeviceIdPaged(1L, LocalDateTime.now(), null, pageable);
+        metricService.getMetricsByDeviceIdPaged(1L, start, null, pageable);
 
-        verify(metricRepository).findByDeviceId(1L, pageable);
+        verify(metricRepository).findByDeviceIdAndTimestampGreaterThanEqual(1L, start, pageable);
+        verify(metricRepository, never()).findByDeviceId(any(Long.class), any(Pageable.class));
+    }
+
+    @Test
+    void pagedMetricsFilterUntilEndDateWhenOnlyEndGiven() {
+        Pageable pageable = PageRequest.of(0, 20);
+        LocalDateTime end = LocalDateTime.of(2026, 9, 30, 0, 0);
+        when(metricRepository.findByDeviceIdAndTimestampLessThanEqual(1L, end, pageable)).thenReturn(new PageImpl<>(List.of()));
+
+        metricService.getMetricsByDeviceIdPaged(1L, null, end, pageable);
+
+        verify(metricRepository).findByDeviceIdAndTimestampLessThanEqual(1L, end, pageable);
+        verify(metricRepository, never()).findByDeviceId(any(Long.class), any(Pageable.class));
+    }
+
+    @Test
+    void pagedMetricsThrowWhenDeviceDoesNotExist() {
+        when(deviceRepository.existsById(99L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> metricService.getMetricsByDeviceIdPaged(99L, null, null, PageRequest.of(0, 20)));
+
+        verify(metricRepository, never()).findByDeviceId(any(Long.class), any(Pageable.class));
+    }
+
+    @Test
+    void summaryThrowsWhenDeviceDoesNotExist() {
+        when(deviceRepository.existsById(99L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> metricService.getMetricSummary(99L, null, null));
+
+        verify(metricRepository, never()).getMetricSummary(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class));
     }
 
     @Test

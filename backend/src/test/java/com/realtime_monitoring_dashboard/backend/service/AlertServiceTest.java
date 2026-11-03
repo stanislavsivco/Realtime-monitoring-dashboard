@@ -56,6 +56,17 @@ class AlertServiceTest {
     }
 
     @Test
+    void createAlertTruncatesMessageThatDoesNotFitTheColumn() {
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        alertService.createAlert(device(), AlertSeverity.CRITICAL, "x".repeat(400));
+
+        ArgumentCaptor<Alert> captor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository).save(captor.capture());
+        assertThat(captor.getValue().getMessage()).hasSize(AlertService.MAX_MESSAGE_LENGTH).endsWith("...");
+    }
+
+    @Test
     void createAlertPersistsUnresolvedAlertWithGivenData() {
         Device device = device();
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -111,10 +122,11 @@ class AlertServiceTest {
     }
 
     @Test
-    void getActiveAlertsMapsToDtos() {
-        when(alertRepository.findByResolvedFalseOrderByTimestampDesc()).thenReturn(List.of(alert(7L)));
+    void pagedAlertsAreMappedToDtos() {
+        Pageable pageable = PageRequest.of(0, 15);
+        when(alertRepository.findAlertsFiltered(null, null, pageable)).thenReturn(new PageImpl<>(List.of(alert(7L))));
 
-        List<AlertDTO> result = alertService.getActiveAlerts();
+        List<AlertDTO> result = alertService.getAlertsPaged(null, null, pageable).getContent();
 
         assertThat(result).hasSize(1);
         AlertDTO dto = result.get(0);

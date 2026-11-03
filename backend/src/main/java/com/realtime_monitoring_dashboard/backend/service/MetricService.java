@@ -25,7 +25,9 @@ import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MetricService {
@@ -118,7 +120,7 @@ public class MetricService {
                 metric.getLatencyMs() != null ? metric.getLatencyMs() : 0);
     }
 
-    @Scheduled(fixedRate = 10000)
+    @Scheduled(initialDelay = OFFLINE_THRESHOLD_SECONDS * 1000L, fixedRate = 10000)
     public void checkOfflineDevices() {
         List<Device> devices = deviceRepository.findAll();
         LocalDateTime threshold = LocalDateTime.now().minusSeconds(OFFLINE_THRESHOLD_SECONDS);
@@ -128,22 +130,35 @@ public class MetricService {
                 continue;
             }
 
-            Optional<Metric> latest = metricRepository.findTopByDeviceIdOrderByTimestampDesc(device.getId());
-            boolean isStale = latest.isEmpty() || latest.get().getTimestamp().isBefore(threshold);
-
-            if (isStale) {
-                device.setStatus(DeviceStatus.OFFLINE);
-                deviceRepository.save(device);
-                messagingTemplate.convertAndSend("/topic/devices", mapDeviceToDTO(device));
+            try {
+                checkDevice(device, threshold);
+            } catch (RuntimeException ex) {
+                log.error("Offline check failed for device {}", device.getId(), ex);
             }
         }
     }
 
-    public List<MetricDTO> getMetricsByDeviceId(Long deviceId) {
-        return metricRepository.findTop120ByDeviceIdOrderByTimestampAsc(deviceId)
-                .stream()
-                .map(this::mapToDTO)
-                .toList();
+    private void checkDevice(Device device, LocalDateTime threshold) {
+        Optional<Metric> latest = metricRepository.findTopByDeviceIdOrderByTimestampDesc(device.getId());
+        boolean isStale = latest.isEmpty() || latest.get().getTimestamp().isBefore(threshold);
+
+        if (isStale) {
+            markOffline(device, latest.isPresent());
+        }
+    }
+
+    private void markOffline(Device device, boolean hasReportedBefore) {
+        alertService.resolveActiveAlertsForDevice(device);
+
+        if (hasReportedBefore) {
+            alertService.createAlert(device, AlertSeverity.CRITICAL, String.format(
+                    "Device %s is offline: no metrics for over %d seconds",
+                    device.getName(), OFFLINE_THRESHOLD_SECONDS));
+        }
+
+        device.setStatus(DeviceStatus.OFFLINE);
+        deviceRepository.save(device);
+        messagingTemplate.convertAndSend("/topic/devices", mapDeviceToDTO(device));
     }
 
     public MetricDTO getLatestMetricByDeviceId(Long deviceId) {
@@ -161,18 +176,37 @@ public class MetricService {
 
         if (startDate != null && endDate != null) {
             validateInterval(startDate, endDate);
-            return metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable)
-                    .map(this::mapToDTO);
         }
-        return metricRepository.findByDeviceId(deviceId, pageable).map(this::mapToDTO);
+        requireDevice(deviceId);
+        return findMetrics(deviceId, startDate, endDate, pageable).map(this::mapToDTO);
+    }
+
+    private Page<Metric> findMetrics(Long deviceId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        if (startDate != null && endDate != null) {
+            return metricRepository.findByDeviceIdAndTimestampBetween(deviceId, startDate, endDate, pageable);
+        }
+        if (startDate != null) {
+            return metricRepository.findByDeviceIdAndTimestampGreaterThanEqual(deviceId, startDate, pageable);
+        }
+        if (endDate != null) {
+            return metricRepository.findByDeviceIdAndTimestampLessThanEqual(deviceId, endDate, pageable);
+        }
+        return metricRepository.findByDeviceId(deviceId, pageable);
     }
 
     public MetricSummaryDTO getMetricSummary(Long deviceId, LocalDateTime startDate, LocalDateTime endDate) {
         LocalDateTime end = endDate != null ? endDate : LocalDateTime.now();
         LocalDateTime start = startDate != null ? startDate : end.minusDays(DEFAULT_SUMMARY_DAYS);
         validateInterval(start, end);
+        requireDevice(deviceId);
 
         return metricRepository.getMetricSummary(deviceId, start, end);
+    }
+
+    private void requireDevice(Long deviceId) {
+        if (!deviceRepository.existsById(deviceId)) {
+            throw new ResourceNotFoundException("Device with ID " + deviceId + " does not exist");
+        }
     }
 
     private void validateInterval(LocalDateTime startDate, LocalDateTime endDate) {

@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AlertService {
 
+    static final int MAX_MESSAGE_LENGTH = 255;
+
     private final AlertRepository alertRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -33,19 +35,12 @@ public class AlertService {
         Alert alert = Alert.builder()
                 .device(device)
                 .severity(severity)
-                .message(message)
+                .message(truncate(message))
                 .timestamp(LocalDateTime.now())
                 .resolved(false)
                 .build();
         AlertDTO dto = mapToDTO(alertRepository.save(alert));
         messagingTemplate.convertAndSend("/topic/alerts", dto);
-    }
-
-    public List<AlertDTO> getActiveAlerts() {
-        return alertRepository.findByResolvedFalseOrderByTimestampDesc()
-                .stream()
-                .map(this::mapToDTO)
-                .toList();
     }
 
     @Transactional
@@ -86,6 +81,13 @@ public class AlertService {
     public Page<AlertDTO> getAlertsPaged(Boolean resolved, AlertSeverity severity, Pageable pageable) {
         return alertRepository.findAlertsFiltered(resolved, severity, pageable)
                 .map(this::mapToDTO);
+    }
+
+    private static String truncate(String message) {
+        if (message.length() <= MAX_MESSAGE_LENGTH) {
+            return message;
+        }
+        return message.substring(0, MAX_MESSAGE_LENGTH - 3) + "...";
     }
 
     private AlertDTO mapToDTO(Alert alert) {
