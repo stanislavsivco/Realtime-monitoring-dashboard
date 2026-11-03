@@ -166,12 +166,19 @@ class DeviceIdCacheTest(AgentTestCase):
 
 
 class MetricsTest(AgentTestCase):
-    def test_latency_is_milliseconds_or_none_on_failure(self):
-        with mock.patch.object(self.agent.requests, "get"), \
-                mock.patch.object(self.agent.time, "time", side_effect=[100.0, 100.01234]):
+    def test_latency_is_milliseconds_of_the_tcp_connect(self):
+        clock = types.SimpleNamespace(perf_counter=mock.Mock(side_effect=[100.0, 100.01234]))
+        network = types.SimpleNamespace(create_connection=mock.MagicMock())
+        with mock.patch.object(self.agent, "time", clock), mock.patch.object(self.agent, "socket", network):
             self.assertEqual(self.agent.get_latency(), 12.34)
-        with mock.patch.object(self.agent.requests, "get", side_effect=requests.exceptions.Timeout()):
-            self.assertIsNone(self.agent.get_latency())
+        network.create_connection.assert_called_once_with(("1.1.1.1", 443), timeout=2)
+
+    def test_latency_is_none_when_the_connection_fails(self):
+        for error in (TimeoutError(), ConnectionRefusedError(), OSError("unreachable")):
+            with self.subTest(error=type(error).__name__):
+                network = types.SimpleNamespace(create_connection=mock.Mock(side_effect=error))
+                with mock.patch.object(self.agent, "socket", network):
+                    self.assertIsNone(self.agent.get_latency())
 
     def test_network_rate(self):
         def counters(received, sent):
@@ -179,8 +186,9 @@ class MetricsTest(AgentTestCase):
 
         def run(samples, times):
             self.agent._last_net_io = None
+            clock = types.SimpleNamespace(time=mock.Mock(side_effect=times))
             with mock.patch.object(self.agent.psutil, "net_io_counters", side_effect=samples), \
-                    mock.patch.object(self.agent.time, "time", side_effect=times):
+                    mock.patch.object(self.agent, "time", clock):
                 return [self.agent.get_network_mbps() for _ in samples]
 
         self.assertEqual(run([counters(0, 0), counters(1_250_000, 625_000)], [1.0, 2.0]), [(None, None), (10.0, 5.0)])
