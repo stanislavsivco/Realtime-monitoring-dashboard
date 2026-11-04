@@ -131,6 +131,10 @@
   - Status change is saved, old alerts are resolved, a WARNING or CRITICAL alert is created and the device is broadcast to /topic/devices right away
   - OFFLINE devices, devices without metrics and devices whose latest metric is older than 30 seconds are left unchanged, no metric is stored and no alert is duplicated
   - Unit tests and ThresholdStatusIntegrationTest (H2, real Spring event wiring)
+- Agent unit tests (72-Python-agent-unit-tests):
+  - Covers configuration (missing or blank AGENT_API_KEY exits, defaults), machine ID, registration payload and headers, cached device ID, latency, network Mbps (first sample, zero elapsed time, counter reset), collected metrics contract and the main loop
+  - Main loop is checked for correct ingest payload, key header and timeout, survival of backend outages, timeouts and unexpected errors, no re-registration on 400, 401, 403 and 500, and re-registration after 404 (also when the backend is down during re-registration and when the cache file is already gone)
+  - Tests never touch the real .device_id or .machine_id and need no network
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk

@@ -37,6 +37,7 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 - Build: ./mvnw compile (run in backend/, without clean)
 - Tests: ./mvnw test
 - Run: ./mvnw spring-boot:run
+- Agent tests: python -m unittest agentTests -v (run in agent/, no extra dependencies)
 
 ## Roadmap
 @docs/ROADMAP.md

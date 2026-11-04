@@ -24,6 +24,16 @@ stages:
             env:
               DB_PASSWORD: ci-only-password
               JWT_SECRET: ci-only-secret-that-is-at-least-thirty-two-characters-long
+      - job: Agent
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.12'
+          - script: |
+              python -m pip install -r requirements.txt
+              python -m unittest agentTests -v
+            workingDirectory: agent
+            displayName: Agent tests
       - job: Frontend
         steps:
           - task: NodeTool@0
