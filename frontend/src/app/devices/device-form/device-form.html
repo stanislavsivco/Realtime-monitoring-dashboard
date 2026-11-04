@@ -1,0 +1,63 @@
+<form class="device-form" [formRoot]="deviceForm">
+    @if (initialValue() === null) {
+    <h2 class="form-title">Add device</h2>
+    } @else {
+    <h2 class="form-title">Edit device</h2>
+    }
+
+    <div class="form-field">
+        <label for="device-name">Name</label>
+        <input id="device-name" type="text" [formField]="deviceForm.name" />
+        @if (deviceForm.name().touched()) {
+        @for (error of deviceForm.name().errors(); track error.kind) {
+        @if (error.kind === 'required') {
+        <div class="field-error">Name is required</div>
+        }
+        @if (error.kind === 'maxLength') {
+        <div class="field-error">Name can have at most 255 characters</div>
+        }
+        }
+        }
+    </div>
+
+    <div class="form-field">
+        <label for="device-type">Type</label>
+        <select id="device-type" [formField]="deviceForm.type">
+            <option value="">Select type</option>
+            @for (item of deviceTypes; track item) {
+            <option [value]="item">{{ item }}</option>
+            }
+        </select>
+        @if (deviceForm.type().touched()) {
+        @for (error of deviceForm.type().errors(); track error.kind) {
+        @if (error.kind === 'required') {
+        <div class="field-error">Type is required</div>
+        }
+        }
+        }
+    </div>
+
+    <div class="form-field">
+        <label for="device-location">Location</label>
+        <input id="device-location" type="text" [formField]="deviceForm.location" />
+        @if (deviceForm.location().touched()) {
+        @for (error of deviceForm.location().errors(); track error.kind) {
+        @if (error.kind === 'required') {
+        <div class="field-error">Location is required</div>
+        }
+        @if (error.kind === 'maxLength') {
+        <div class="field-error">Location can have at most 255 characters</div>
+        }
+        }
+        }
+    </div>
+
+    @if (errorMessage() !== '') {
+    <div class="form-error">{{ errorMessage() }}</div>
+    }
+
+    <div class="form-actions">
+        <button type="submit" class="btn-save" [disabled]="isSaving()">Save</button>
+        <button type="button" class="btn-cancel" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+    </div>
+</form>

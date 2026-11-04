@@ -1,0 +1,47 @@
+<div class="devices-page">
+
+    <div class="devices-header">
+        <h1 class="devices-title">Devices</h1>
+        @if (isFormOpen() === false) {
+        <button class="btn-add" (click)="openForm()">Add device</button>
+        }
+    </div>
+
+    @if (isFormOpen()) {
+    <app-device-form [initialValue]="editingDevice()" [errorMessage]="formError()" [isSaving]="isSaving()"
+        (saved)="saveDevice($event)" (cancelled)="closeForm()" />
+    }
+
+    @if (errorMessage() !== '') {
+    <div class="devices-error">{{ errorMessage() }}</div>
+    }
+
+    <div class="devices-list">
+        @for (item of devices(); track item.id) {
+        <div class="device-row">
+            <div class="device-info">
+                <div class="device-name">{{ item.name }}</div>
+                <div class="device-meta">{{ item.type }} &middot; {{ item.location }}</div>
+            </div>
+            <span class="device-source">{{ getSourceLabel(item) }}</span>
+            <span class="device-status {{ getStatusClass(item.status) }}">{{ item.status }}</span>
+            <div class="device-actions">
+                @if (confirmingId() === item.id) {
+                <span class="device-confirm-text">Delete this device?</span>
+                <button class="btn-confirm" (click)="confirmDelete(item.id)" [disabled]="isDeleting()">Yes,
+                    delete</button>
+                <button class="btn-cancel" (click)="cancelDelete()" [disabled]="isDeleting()">Cancel</button>
+                } @else {
+                <button class="btn-edit" (click)="openEdit(item)" [disabled]="isFormOpen()">Edit</button>
+                <button class="btn-delete" (click)="askDelete(item.id)">Delete</button>
+                }
+            </div>
+        </div>
+        } @empty {
+        @if (errorMessage() === '') {
+        <div class="devices-empty">No devices found</div>
+        }
+        }
+    </div>
+
+</div>

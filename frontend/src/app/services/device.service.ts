@@ -11,6 +11,12 @@ export interface DeviceDTO {
     simulated: boolean;
 }
 
+export interface DeviceInput {
+    name: string;
+    type: string;
+    location: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -21,5 +27,17 @@ export class DeviceService {
 
     getDevices(): Observable<DeviceDTO[]> {
         return this.http.get<DeviceDTO[]>(this.baseUrl);
+    }
+
+    deleteDevice(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/${id}`);
+    }
+
+    createDevice(input: DeviceInput): Observable<DeviceDTO> {
+        return this.http.post<DeviceDTO>(this.baseUrl, input);
+    }
+
+    updateDevice(id: number, input: DeviceInput): Observable<DeviceDTO> {
+        return this.http.put<DeviceDTO>(`${this.baseUrl}/${id}`, input);
     }
 }
