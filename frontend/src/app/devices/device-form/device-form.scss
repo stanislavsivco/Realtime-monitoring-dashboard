@@ -1,0 +1,77 @@
+:host {
+    display: block;
+}
+
+.device-form {
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    gap: 14px;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    border-radius: 12px;
+}
+
+.form-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text);
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-field label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.form-field input,
+.form-field select {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    color: var(--text);
+    background-color: var(--bg);
+    border-radius: 8px;
+}
+
+.field-error,
+.form-error {
+    font-size: 0.75rem;
+    color: var(--crit);
+}
+
+.form-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-save,
+.btn-cancel {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.btn-save {
+    border: 1px solid var(--accent);
+    background-color: var(--accent);
+    color: #ffffff;
+}
+
+.btn-cancel {
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--text);
+}
+
+.btn-save:disabled,
+.btn-cancel:disabled {
+    opacity: 0.5;
+    cursor: default;
+}

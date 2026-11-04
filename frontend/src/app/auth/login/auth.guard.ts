@@ -10,3 +10,12 @@ export const authGuard: CanActivateFn = () => {
     }
     return router.parseUrl('/login');
 }
+
+export const adminGuard: CanActivateFn = () => {
+    const authService = inject(AuthService);
+    const router = inject(Router);
+    if (authService.getRole() === 'ADMIN') {
+        return true;
+    }
+    return router.parseUrl('/dashboard');
+}
