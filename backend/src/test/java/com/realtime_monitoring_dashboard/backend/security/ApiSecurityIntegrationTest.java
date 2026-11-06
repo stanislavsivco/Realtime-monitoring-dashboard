@@ -31,6 +31,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -51,17 +53,12 @@ import com.realtime_monitoring_dashboard.backend.service.DeviceService;
 import com.realtime_monitoring_dashboard.backend.service.MetricService;
 import com.realtime_monitoring_dashboard.backend.service.ThresholdService;
 import com.realtime_monitoring_dashboard.backend.service.UserService;
+import com.realtime_monitoring_dashboard.backend.support.PostgresTestDatabase;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:apisecurity;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "jwt.secret=" + ApiSecurityIntegrationTest.JWT_SECRET,
         "agent.api-key=" + ApiSecurityIntegrationTest.AGENT_KEY,
         "admin.password=",
@@ -170,6 +167,11 @@ class ApiSecurityIntegrationTest {
 
     static Stream<Endpoint> adminEndpoints() {
         return endpoints(Access.ADMIN);
+    }
+
+    @DynamicPropertySource
+    static void postgres(DynamicPropertyRegistry registry) {
+        PostgresTestDatabase.register(registry);
     }
 
     @Autowired

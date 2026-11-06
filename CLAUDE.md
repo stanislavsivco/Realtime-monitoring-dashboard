@@ -35,7 +35,7 @@ Real-time monitoring of network devices. School project for the Deutsche Telekom
 
 ## Commands
 - Build: ./mvnw compile (run in backend/, without clean)
-- Tests: ./mvnw test
+- Tests: ./mvnw test (Docker must be running: integration tests start a real PostgreSQL with Testcontainers, there is no H2)
 - Run: ./mvnw spring-boot:run
 - Agent tests: python -m unittest agentTests -v (run in agent/, no extra dependencies)
 

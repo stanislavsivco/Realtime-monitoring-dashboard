@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -22,14 +24,9 @@ import com.jayway.jsonpath.JsonPath;
 import com.realtime_monitoring_dashboard.backend.model.Role;
 import com.realtime_monitoring_dashboard.backend.model.User;
 import com.realtime_monitoring_dashboard.backend.repository.UserRepository;
+import com.realtime_monitoring_dashboard.backend.support.PostgresTestDatabase;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:registerrole;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "jwt.secret=register-role-it-jwt-secret-that-is-long-enough",
         "agent.api-key=register-role-it-agent-key-that-is-long-enough",
         "admin.password=",
@@ -39,6 +36,11 @@ import com.realtime_monitoring_dashboard.backend.repository.UserRepository;
 class RegisterRoleIntegrationTest {
 
     private static final String USERNAME = "role.test";
+
+    @DynamicPropertySource
+    static void postgres(DynamicPropertyRegistry registry) {
+        PostgresTestDatabase.register(registry);
+    }
 
     @Autowired
     private WebApplicationContext context;

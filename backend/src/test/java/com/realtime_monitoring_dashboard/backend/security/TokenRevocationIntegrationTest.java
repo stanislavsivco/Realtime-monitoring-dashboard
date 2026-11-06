@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -23,17 +25,12 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.jayway.jsonpath.JsonPath;
 import com.realtime_monitoring_dashboard.backend.repository.UserRepository;
+import com.realtime_monitoring_dashboard.backend.support.PostgresTestDatabase;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:tokenrevocation;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "jwt.secret=" + TokenRevocationIntegrationTest.JWT_SECRET,
         "agent.api-key=token-revocation-agent-key-that-is-long-enough",
         "admin.password=",
@@ -44,6 +41,11 @@ class TokenRevocationIntegrationTest {
 
     static final String JWT_SECRET = "token-revocation-jwt-secret-that-is-long-enough";
     private static final String PASSWORD = "password123";
+
+    @DynamicPropertySource
+    static void postgres(DynamicPropertyRegistry registry) {
+        PostgresTestDatabase.register(registry);
+    }
 
     @Autowired
     private WebApplicationContext context;

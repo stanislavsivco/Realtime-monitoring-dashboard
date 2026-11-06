@@ -135,6 +135,9 @@
   - Covers configuration (missing or blank AGENT_API_KEY exits, defaults), machine ID, registration payload and headers, cached device ID, latency, network Mbps (first sample, zero elapsed time, counter reset), collected metrics contract and the main loop
   - Main loop is checked for correct ingest payload, key header and timeout, survival of backend outages, timeouts and unexpected errors, no re-registration on 400, 401, 403 and 500, and re-registration after 404 (also when the backend is down during re-registration and when the cache file is already gone)
   - Tests never touch the real .device_id or .machine_id and need no network
+- Backend integration tests run on PostgreSQL (Testcontainers, support/PostgresTestDatabase) instead of H2:
+  - DeviceServiceIntegrationTest, MetricRetentionIntegrationTest, ThresholdStatusIntegrationTest, ApiSecurityIntegrationTest and RegisterRoleIntegrationTest use the production dialect and ddl-auto from application.yaml. H2 was removed from pom.xml
+  - One PostgreSQL container per test run, every Spring context gets its own empty database
 
 ## Planned
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
