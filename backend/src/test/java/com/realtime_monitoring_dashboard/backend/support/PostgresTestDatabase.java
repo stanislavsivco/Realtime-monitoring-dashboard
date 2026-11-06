@@ -11,7 +11,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 public final class PostgresTestDatabase {
 
-    private static final String IMAGE = "postgres:17";
+    private static final String IMAGE = "postgres:18.6";
     private static final PostgreSQLContainer CONTAINER = new PostgreSQLContainer(IMAGE);
     private static final AtomicInteger DATABASE_COUNTER = new AtomicInteger();
 

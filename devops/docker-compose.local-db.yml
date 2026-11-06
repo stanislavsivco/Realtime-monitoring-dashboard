@@ -11,7 +11,7 @@ services:
       - db
 
   db:
-    image: postgres:15-alpine
+    image: postgres:18.6
     container_name: rmd-db
     ports:
       - "5432:5432"
@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: ${LOCAL_DB_USERNAME:?missing username}
       POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:?missing password}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata18:/var/lib/postgresql
 
 volumes:
-  pgdata:
+  pgdata18:
