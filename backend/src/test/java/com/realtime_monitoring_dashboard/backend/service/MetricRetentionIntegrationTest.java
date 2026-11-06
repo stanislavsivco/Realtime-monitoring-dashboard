@@ -7,19 +7,26 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
+import com.realtime_monitoring_dashboard.backend.support.PostgresTestDatabase;
 
-@DataJpaTest(properties = {
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class MetricRetentionIntegrationTest {
+
+    @DynamicPropertySource
+    static void postgres(DynamicPropertyRegistry registry) {
+        PostgresTestDatabase.register(registry);
+    }
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 12, 0);
 
@@ -75,6 +82,22 @@ class MetricRetentionIntegrationTest {
         int deleted = new MetricRetentionService(metricRepository, 7).deleteMetricsOlderThanRetention(NOW);
 
         assertThat(deleted).isEqualTo(count);
+        assertThat(metricRepository.findAll()).extracting(Metric::getId).containsExactly(recent.getId());
+    }
+
+    @Test
+    void deletesExactlyOneFullBatch() {
+        saveDevice();
+        for (int i = 0; i < MetricRetentionService.BATCH_SIZE; i++) {
+            metricAt(NOW.minusDays(30).plusMinutes(i));
+        }
+        Metric recent = metricAt(NOW);
+        entityManager.flush();
+        entityManager.clear();
+
+        int deleted = new MetricRetentionService(metricRepository, 7).deleteMetricsOlderThanRetention(NOW);
+
+        assertThat(deleted).isEqualTo(MetricRetentionService.BATCH_SIZE);
         assertThat(metricRepository.findAll()).extracting(Metric::getId).containsExactly(recent.getId());
     }
 }

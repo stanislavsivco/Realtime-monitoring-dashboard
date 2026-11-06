@@ -8,10 +8,13 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.realtime_monitoring_dashboard.backend.dto.IngestMetricRequestDTO;
@@ -23,13 +26,17 @@ import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
+import com.realtime_monitoring_dashboard.backend.support.PostgresTestDatabase;
 
-@DataJpaTest(properties = {
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({ThresholdService.class, MetricService.class, DeviceStatusCalculator.class, AlertService.class})
 class OfflineAlertIntegrationTest {
+
+    @DynamicPropertySource
+    static void postgres(DynamicPropertyRegistry registry) {
+        PostgresTestDatabase.register(registry);
+    }
 
     @Autowired
     private MetricService metricService;
