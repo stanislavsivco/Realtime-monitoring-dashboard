@@ -25,6 +25,17 @@ export class Navbar implements OnInit {
   }
 
   logout(): void {
+    this.authService.logoutOnServer().subscribe({
+      next: () => {
+        this.finishLogout();
+      },
+      error: () => {
+        this.finishLogout();
+      }
+    });
+  }
+
+  private finishLogout(): void {
     this.authService.logout();
     this.websocketService.disconnect();
     this.router.navigate(['/login']);

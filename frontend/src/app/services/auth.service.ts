@@ -20,6 +20,10 @@ export class AuthService {
         return this.http.post<LoginResponse>(`${this.baseUrl}/login`, { username: username, password: password });
     }
 
+    logoutOnServer(): Observable<void> {
+        return this.http.post<void>(`${this.baseUrl}/logout`, {});
+    }
+
     saveSession(response: LoginResponse): void {
         localStorage.setItem('token', response.token);
         localStorage.setItem('username', response.username);
