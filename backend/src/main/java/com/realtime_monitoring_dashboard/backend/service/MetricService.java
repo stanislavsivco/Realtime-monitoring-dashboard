@@ -1,6 +1,7 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -219,7 +220,7 @@ public class MetricService {
         return MetricDTO.builder()
                 .id(metric.getId())
                 .deviceId(metric.getDevice().getId())
-                .timestamp(metric.getTimestamp())
+                .timestamp(metric.getTimestamp().atZone(ZoneId.systemDefault()).toInstant())
                 .disk(metric.getDisk())
                 .ram(metric.getRam())
                 .cpu(metric.getCpu())

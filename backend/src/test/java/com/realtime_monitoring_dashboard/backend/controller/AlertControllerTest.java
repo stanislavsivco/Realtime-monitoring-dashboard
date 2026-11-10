@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +60,7 @@ class AlertControllerTest {
     private static AlertDTO alertDto(boolean acknowledged, boolean resolved) {
         return AlertDTO.builder().id(1L).deviceId(2L).deviceName("Server-1")
                 .severity(AlertSeverity.CRITICAL).message("CPU too high")
-                .timestamp(LocalDateTime.of(2026, 9, 1, 12, 0))
+                .timestamp(Instant.parse("2026-09-01T12:00:00Z"))
                 .acknowledged(acknowledged).resolved(resolved).build();
     }
 

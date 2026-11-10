@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -63,7 +64,7 @@ class MetricControllerTest {
     }
 
     private static MetricDTO metricDto() {
-        return MetricDTO.builder().id(1L).deviceId(1L).timestamp(LocalDateTime.of(2026, 9, 1, 12, 0))
+        return MetricDTO.builder().id(1L).deviceId(1L).timestamp(Instant.parse("2026-09-01T12:00:00Z"))
                 .cpu(45.5).ram(60.0).disk(30.0).latencyMs(20)
                 .networkInMbps(100.0).networkOutMbps(50.0).build();
     }
