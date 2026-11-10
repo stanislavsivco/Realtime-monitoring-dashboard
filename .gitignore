@@ -33,3 +33,11 @@ agent/venv/
 
 # devops #
 devops/.env
+
+# e2e #
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/.auth/
+e2e/.env

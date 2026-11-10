@@ -138,6 +138,15 @@
 - Backend integration tests run on PostgreSQL (Testcontainers, support/PostgresTestDatabase) instead of H2:
   - DeviceServiceIntegrationTest, MetricRetentionIntegrationTest, ThresholdStatusIntegrationTest, ApiSecurityIntegrationTest and RegisterRoleIntegrationTest use the production dialect and ddl-auto from application.yaml. H2 was removed from pom.xml
   - One PostgreSQL container per test run, every Spring context gets its own empty database
+  - PostgreSQL 18.6 in the tests (PostgresTestDatabase) and in docker-compose.local-db.yml. The image of version 18 stores data under /var/lib/postgresql, so the local volume is mounted there and renamed to pgdata18
+- Playwright end-to-end tests in e2e/ (scenarios T1 to T18 of the automated test plan):
+  - tests/login.spec.ts: T1 to T6 and T9 (redirects, empty fields, wrong credentials, sign in by button and Enter, reload, sign out and Back, invalid token)
+  - tests/roles.spec.ts: T7, T8 and T10 (ADMIN and VIEWER navbar, guards for /devices and /admin, role change after re-login)
+  - tests/devices.spec.ts: T11 to T16 (form validation, add, duplicate name, edit, delete with confirmation, conflicts)
+  - tests/dashboard.spec.ts: T17 and T18 (categories and detail, a second session follows add, edit and delete)
+  - A setup project signs in once as ADMIN and VIEWER and stores the sessions in e2e/.auth. Credentials come from RMD_* environment variables or e2e/.env, never from code
+  - Each test creates its own device with an e2e- prefix and deletes it afterwards, also on failure. Simulated devices are never touched
+  - Not yet wired into azure-pipelines.yml, it needs the whole app running and a VIEWER account
 - UTC timestamps and admin password check:
   - The backend runs in UTC (BackendApplication), so stored times no longer depend on the machine and there is no daylight saving jump
   - MetricDTO and AlertDTO return timestamp as Instant with a Z suffix (for example 2026-11-10T12:00:00Z), the browser converts it to local time, before the UI showed UTC times as local time on Render (one or two hours off)
