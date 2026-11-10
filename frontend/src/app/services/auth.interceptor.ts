@@ -13,7 +13,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     if (token === null) {
         return next(req);
     }
-    if (req.url.includes('/api/auth/')) {
+    if (req.url.includes('/api/auth/login') || req.url.includes('/api/auth/register')) {
         return next(req);
     }
     const authReq = req.clone({
