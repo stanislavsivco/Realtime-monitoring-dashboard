@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { ADMIN_PASSWORD, ADMIN_STATE, ADMIN_USERNAME, EMPTY_STATE } from '../env';
+import { ADMIN_STATE, ADMIN_USERNAME, EMPTY_STATE } from '../env';
 import { LoginPage, Navbar } from './support/pages';
 
 test.describe('without a session', () => {
@@ -57,24 +57,6 @@ test.describe('without a session', () => {
     }
   });
 
-  test('T4: admin signs in with the button and with Enter', async ({ page }) => {
-    const loginPage = new LoginPage(page);
-    const navbar = new Navbar(page);
-    await loginPage.goto();
-
-    await loginPage.login(ADMIN_USERNAME, ADMIN_PASSWORD);
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(navbar.user(ADMIN_USERNAME, 'ADMIN')).toBeVisible();
-
-    await navbar.signOut.click();
-    await expect(page).toHaveURL(/\/login$/);
-
-    await loginPage.fill(ADMIN_USERNAME, ADMIN_PASSWORD);
-    await loginPage.password.press('Enter');
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(navbar.user(ADMIN_USERNAME, 'ADMIN')).toBeVisible();
-  });
-
   test('T9: an invalid token signs the user out', async ({ page }) => {
     await new LoginPage(page).goto();
     await page.evaluate((username) => {
@@ -87,7 +69,7 @@ test.describe('without a session', () => {
 
     await expect(page).toHaveURL(/\/login$/);
     await expect(new LoginPage(page).signInButton).toBeVisible();
-    expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('token'))).toBeNull();
   });
 });
 
@@ -105,21 +87,5 @@ test.describe('with an admin session', () => {
 
     await page.goto('/login');
     await expect(page).toHaveURL(/\/dashboard$/);
-  });
-
-  test('T6: sign out leaves no navbar and Back does not show a protected page', async ({ page }) => {
-    const navbar = new Navbar(page);
-    await page.goto('/dashboard');
-    await expect(navbar.navigation).toBeVisible();
-
-    await navbar.signOut.click();
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(navbar.navigation).toHaveCount(0);
-    expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull();
-
-    await page.goBack();
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(navbar.navigation).toHaveCount(0);
-    await expect(new LoginPage(page).signInButton).toBeVisible();
   });
 });

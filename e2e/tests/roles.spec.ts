@@ -1,13 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-import {
-  ADMIN_STATE,
-  ADMIN_USERNAME,
-  VIEWER_PASSWORD,
-  VIEWER_STATE,
-  VIEWER_USERNAME,
-} from '../env';
-import { LoginPage, Navbar } from './support/pages';
+import { ADMIN_STATE, VIEWER_STATE } from '../env';
+import { Navbar } from './support/pages';
 
 test.describe('admin navigation', () => {
   test.use({ storageState: ADMIN_STATE });
@@ -28,23 +22,6 @@ test.describe('admin navigation', () => {
 
     await navbar.link('Dashboard').click();
     await expect(page).toHaveURL(/\/dashboard$/);
-  });
-
-  test('T10: after admin signs out and viewer signs in there is no Devices link', async ({ page }) => {
-    const navbar = new Navbar(page);
-    await page.goto('/dashboard');
-    await expect(navbar.user(ADMIN_USERNAME, 'ADMIN')).toBeVisible();
-    await expect(navbar.link('Devices')).toBeVisible();
-
-    await navbar.signOut.click();
-    await expect(page).toHaveURL(/\/login$/);
-
-    await new LoginPage(page).login(VIEWER_USERNAME, VIEWER_PASSWORD);
-
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(navbar.user(VIEWER_USERNAME, 'VIEWER')).toBeVisible();
-    await expect(navbar.link('Alerts')).toBeVisible();
-    await expect(navbar.link('Devices')).toHaveCount(0);
   });
 });
 
