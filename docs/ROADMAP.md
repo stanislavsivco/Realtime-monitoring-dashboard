@@ -138,8 +138,21 @@
 - Backend integration tests run on PostgreSQL (Testcontainers, support/PostgresTestDatabase) instead of H2:
   - DeviceServiceIntegrationTest, MetricRetentionIntegrationTest, ThresholdStatusIntegrationTest, ApiSecurityIntegrationTest and RegisterRoleIntegrationTest use the production dialect and ddl-auto from application.yaml. H2 was removed from pom.xml
   - One PostgreSQL container per test run, every Spring context gets its own empty database
+- UTC timestamps and admin password check:
+  - The backend runs in UTC (BackendApplication), so stored times no longer depend on the machine and there is no daylight saving jump
+  - MetricDTO and AlertDTO return timestamp as Instant with a Z suffix (for example 2026-11-10T12:00:00Z), the browser converts it to local time, before the UI showed UTC times as local time on Render (one or two hours off)
+  - Query parameters startDate and endDate are read as UTC
+  - AdminSeeder stops startup when ADMIN_PASSWORD is shorter than 8 characters or longer than 72 bytes (bcrypt limit), only when it has to create the first admin
+  - AdminSeederTest added
 
 ## Planned
+- Frontend: Sign out must call POST /api/auth/logout with the Authorization header, today it only clears localStorage, so the token stays valid until it expires (24 hours)
+- Health endpoint (Spring Boot Actuator, only /actuator/health public) for the Render health check and a docker-compose healthcheck
+- Lock the device row during ingest and the offline check, so a metric arriving at the same moment cannot be overwritten by OFFLINE (it heals itself with the next metric today)
+- Per-device agent keys: with one shared AGENT_API_KEY every agent can send metrics for any device ID
+- Filter alerts by deviceId (GET /api/alerts?deviceId=) for the device detail page
+- Endpoint for a user to change their own password (increase tokenVersion afterwards)
+- Entities Device, Metric, Alert and Threshold use Lombok @Data, the Device.metrics and Metric.device pair makes toString, equals and hashCode recurse, switch to @Getter/@Setter and drop the unused Device.metrics list (after the documentation branch is merged)
 - Repository hygiene: .gitignore, .gitattributes, remove tracked junk
 - Pipeline: build and test stages, secret scanning, branch policies on main
 - Frontend: role-aware UI, threshold management, analytics

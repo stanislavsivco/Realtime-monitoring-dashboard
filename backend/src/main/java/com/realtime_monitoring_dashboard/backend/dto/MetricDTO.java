@@ -1,6 +1,6 @@
 package com.realtime_monitoring_dashboard.backend.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class MetricDTO {
     private Long id;
     private Long deviceId;
-    private LocalDateTime timestamp;
+    private Instant timestamp;
     private Double disk;
     private Double ram;
     private Double cpu;

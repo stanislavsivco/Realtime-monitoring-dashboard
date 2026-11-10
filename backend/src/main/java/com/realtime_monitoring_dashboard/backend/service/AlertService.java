@@ -1,6 +1,7 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -97,7 +98,7 @@ public class AlertService {
                 .deviceName(alert.getDevice().getName())
                 .severity(alert.getSeverity())
                 .message(alert.getMessage())
-                .timestamp(alert.getTimestamp())
+                .timestamp(alert.getTimestamp().atZone(ZoneId.systemDefault()).toInstant())
                 .acknowledged(alert.isAcknowledged())
                 .resolved(alert.isResolved())
                 .build();
