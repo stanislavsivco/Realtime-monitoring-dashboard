@@ -1,20 +1,27 @@
 package com.realtime_monitoring_dashboard.backend.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.realtime_monitoring_dashboard.backend.dto.BlockedDeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
+import com.realtime_monitoring_dashboard.backend.exception.DeviceBlockedException;
 import com.realtime_monitoring_dashboard.backend.exception.DeviceNameAlreadyExistsException;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
+import com.realtime_monitoring_dashboard.backend.model.BlockedDevice;
 import com.realtime_monitoring_dashboard.backend.model.Device;
 import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
+import com.realtime_monitoring_dashboard.backend.repository.BlockedDeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
 import com.realtime_monitoring_dashboard.backend.repository.ThresholdRepository;
@@ -29,6 +36,7 @@ public class DeviceService {
     private final MetricRepository metricRepository;
     private final AlertRepository alertRepository;
     private final ThresholdRepository thresholdRepository;
+    private final BlockedDeviceRepository blockedDeviceRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     public List<DeviceDTO> getAllDevices() {
@@ -86,14 +94,49 @@ public class DeviceService {
         thresholdRepository.deleteByDeviceId(id);
         deviceRepository.delete(device);
         deviceRepository.flush();
+        blockAgentMachine(device);
 
         messagingTemplate.convertAndSend("/topic/devices/delete", id);
     }
 
+    public List<BlockedDeviceDTO> getBlockedDevices() {
+        return blockedDeviceRepository.findAllByOrderByBlockedAtDesc()
+                .stream()
+                .map(this::mapToBlockedDTO)
+                .toList();
+    }
+
+    public void unblockDevice(Long id) {
+        BlockedDevice blockedDevice = blockedDeviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Blocked device with ID " + id + " does not exist"));
+
+        blockedDeviceRepository.delete(blockedDevice);
+    }
+
     public DeviceDTO registerAgent(RegisterAgentRequestDTO request) {
-        return deviceRepository.findByName(request.getHostname())
+        if (blockedDeviceRepository.existsByMachineIdHash(request.getMachineId())) {
+            throw new DeviceBlockedException(
+                    "This device was deleted by an administrator and is blocked from registering again");
+        }
+
+        return deviceRepository.findByMachineIdHash(request.getMachineId())
+                .or(() -> adoptDeviceByName(request))
                 .map(this::mapToDTO)
                 .orElseGet(() -> createAgentDevice(request));
+    }
+
+    private Optional<Device> adoptDeviceByName(RegisterAgentRequestDTO request) {
+        return deviceRepository.findByName(request.getHostname())
+                .map(device -> {
+                    if (device.getMachineIdHash() == null) {
+                        device.setMachineIdHash(request.getMachineId());
+                        return deviceRepository.saveAndFlush(device);
+                    }
+                    if (!device.getMachineIdHash().equals(request.getMachineId())) {
+                        throw nameTaken(device.getName());
+                    }
+                    return device;
+                });
     }
 
     private DeviceDTO createAgentDevice(RegisterAgentRequestDTO request) {
@@ -103,20 +146,36 @@ public class DeviceService {
                 .location(request.getLocation() != null ? request.getLocation() : "Unknown")
                 .status(DeviceStatus.ONLINE)
                 .simulated(false)
+                .machineIdHash(request.getMachineId())
                 .build();
 
         Device saved;
         try {
             saved = deviceRepository.saveAndFlush(device);
         } catch (DataIntegrityViolationException ex) {
-            return deviceRepository.findByName(request.getHostname())
+            return deviceRepository.findByMachineIdHash(request.getMachineId())
                     .map(this::mapToDTO)
-                    .orElseThrow(() -> ex);
+                    .orElseThrow(() -> deviceRepository.existsByName(request.getHostname())
+                            ? nameTaken(request.getHostname())
+                            : ex);
         }
 
         DeviceDTO dto = mapToDTO(saved);
         messagingTemplate.convertAndSend("/topic/devices", dto);
         return dto;
+    }
+
+    private void blockAgentMachine(Device device) {
+        String machineIdHash = device.getMachineIdHash();
+        if (machineIdHash == null || blockedDeviceRepository.existsByMachineIdHash(machineIdHash)) {
+            return;
+        }
+
+        blockedDeviceRepository.save(BlockedDevice.builder()
+                .machineIdHash(machineIdHash)
+                .deviceName(device.getName())
+                .blockedAt(LocalDateTime.now())
+                .build());
     }
 
     private Device findDevice(Long id) {
@@ -144,6 +203,14 @@ public class DeviceService {
                 .location(device.getLocation())
                 .status(device.getStatus())
                 .simulated(device.isSimulated())
+                .build();
+    }
+
+    private BlockedDeviceDTO mapToBlockedDTO(BlockedDevice blockedDevice) {
+        return BlockedDeviceDTO.builder()
+                .id(blockedDevice.getId())
+                .deviceName(blockedDevice.getDeviceName())
+                .blockedAt(blockedDevice.getBlockedAt().atZone(ZoneId.systemDefault()).toInstant())
                 .build();
     }
 

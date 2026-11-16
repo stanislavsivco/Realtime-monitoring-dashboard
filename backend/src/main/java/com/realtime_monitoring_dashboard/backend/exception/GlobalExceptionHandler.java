@@ -151,6 +151,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(DeviceBlockedException.class)
+    public ResponseEntity<ErrorResponse> handleDeviceBlocked(DeviceBlockedException ex, WebRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
         log.warn("Data integrity violation while processing request [{}]: {}", extractPath(request), ex.getMostSpecificCause().getMessage());
