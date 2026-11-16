@@ -153,9 +153,18 @@
   - Query parameters startDate and endDate are read as UTC
   - AdminSeeder stops startup when ADMIN_PASSWORD is shorter than 8 characters or longer than 72 bytes (bcrypt limit), only when it has to create the first admin
   - AdminSeederTest added
+- Block deleted agent devices from re-registering (branch 85_feature/block-deleted-agent-devices):
+  - The agent sends machineId on /api/devices/register: HMAC-SHA256 of the OS machine ID (py-machineid), falls back to a hash of the random ID in .machine_id. The raw machine ID never leaves the computer
+  - machineId is required (64 lowercase hex characters), an agent without it gets 400
+  - The backend identifies agent devices by devices.machine_id_hash (unique) instead of the name, so a device renamed by an admin is found again instead of duplicated
+  - Devices registered before this change have no hash, the first registration with the same name adopts them and saves the hash. A name that belongs to another machine returns 409
+  - Deleting a device with a machine ID adds it to blocked_devices, /register then returns 403 for that machine even under a new name. Devices without a machine ID (created in the dashboard, simulated) are not blocked
+  - ADMIN endpoints GET /api/devices/blocked (id, deviceName, blockedAt, never the hash) and DELETE /api/devices/blocked/{id} to allow the machine again
+  - The agent stops with a [Blocked] message on 403 and on other permanent registration errors (400, 401, 409), it keeps retrying on connection errors, 5xx, 408 and 429
+  - Unit, PostgreSQL integration, concurrency, security matrix and agent tests extended
 
 ## Planned
-- Frontend: Sign out must call POST /api/auth/logout with the Authorization header, today it only clears localStorage, so the token stays valid until it expires (24 hours)
+- Frontend: page with blocked devices (GET /api/devices/blocked, Unblock button calls DELETE /api/devices/blocked/{id}), and the delete confirmation should say that an agent device will be blocked
 - Health endpoint (Spring Boot Actuator, only /actuator/health public) for the Render health check and a docker-compose healthcheck
 - Lock the device row during ingest and the offline check, so a metric arriving at the same moment cannot be overwritten by OFFLINE (it heals itself with the next metric today)
 - Per-device agent keys: with one shared AGENT_API_KEY every agent can send metrics for any device ID

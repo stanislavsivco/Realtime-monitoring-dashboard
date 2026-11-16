@@ -91,7 +91,8 @@ class ApiSecurityIntegrationTest {
             {"role": "VIEWER"}
             """;
     private static final String AGENT_REGISTER_BODY = """
-            {"hostname": "host-1", "type": "Server", "location": "DC1"}
+            {"hostname": "host-1", "type": "Server", "location": "DC1",
+             "machineId": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
             """;
     private static final String INGEST_BODY = """
             {"deviceId": 1, "cpu": 10, "ram": 20, "disk": 30}
@@ -126,6 +127,8 @@ class ApiSecurityIntegrationTest {
             new Endpoint(HttpMethod.POST, "/api/devices", Access.ADMIN, DEVICE_BODY),
             new Endpoint(HttpMethod.PUT, "/api/devices/{id}", Access.ADMIN, DEVICE_BODY),
             new Endpoint(HttpMethod.DELETE, "/api/devices/{id}", Access.ADMIN, null),
+            new Endpoint(HttpMethod.GET, "/api/devices/blocked", Access.ADMIN, null),
+            new Endpoint(HttpMethod.DELETE, "/api/devices/blocked/{id}", Access.ADMIN, null),
             new Endpoint(HttpMethod.POST, "/api/devices/register", Access.AGENT, AGENT_REGISTER_BODY),
             new Endpoint(HttpMethod.POST, "/api/devices/ingest", Access.AGENT, INGEST_BODY),
             new Endpoint(HttpMethod.GET, "/api/devices/{id}/metrics", Access.AUTHENTICATED, null),

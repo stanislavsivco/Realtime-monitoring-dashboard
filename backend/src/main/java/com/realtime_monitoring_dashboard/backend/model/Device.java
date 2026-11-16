@@ -36,6 +36,9 @@ public class Device {
     @Builder.Default
     private boolean simulated = true;
 
+    @Column(name = "machine_id_hash", unique = true, length = 64)
+    private String machineIdHash;
+
     @OneToMany (mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Metric> metrics = new ArrayList<>();

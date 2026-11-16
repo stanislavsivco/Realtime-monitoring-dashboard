@@ -62,6 +62,15 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void deviceBlockedBecomes403WithMessage() {
+        ResponseEntity<ErrorResponse> response = handler.handleDeviceBlocked(
+                new DeviceBlockedException("This device is blocked"), request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody().getMessage()).isEqualTo("This device is blocked");
+    }
+
+    @Test
     void unexpectedExceptionBecomes500WithoutLeakingInternalMessage() {
         ResponseEntity<ErrorResponse> response = handler.handleGeneric(
                 new RuntimeException("connection string jdbc:postgresql://secret-host"), request);

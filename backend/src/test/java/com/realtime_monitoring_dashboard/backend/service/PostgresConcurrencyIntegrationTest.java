@@ -156,14 +156,16 @@ class PostgresConcurrencyIntegrationTest {
     }
 
     @Test
-    void concurrentRegistrationOfTheSameHostnameCreatesOneDevice() throws Exception {
+    void concurrentRegistrationOfTheSameMachineCreatesOneDevice() throws Exception {
         int threads = 8;
         CyclicBarrier start = new CyclicBarrier(threads);
+        String machineId = "0123456789abcdef".repeat(4);
 
         List<Future<Long>> results = IntStream.range(0, threads)
                 .mapToObj(i -> executor.submit((Callable<Long>) () -> {
                     start.await(10, TimeUnit.SECONDS);
-                    return deviceService.registerAgent(new RegisterAgentRequestDTO("race-host", null, null)).getId();
+                    return deviceService.registerAgent(
+                            new RegisterAgentRequestDTO("race-host", null, null, machineId)).getId();
                 }))
                 .toList();
 

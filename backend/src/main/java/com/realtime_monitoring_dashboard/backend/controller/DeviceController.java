@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.realtime_monitoring_dashboard.backend.dto.BlockedDeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
@@ -59,6 +60,19 @@ public class DeviceController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDevice(@PathVariable @Positive Long id) {
         deviceService.deleteDevice(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/blocked")
+    public ResponseEntity<List<BlockedDeviceDTO>> getBlockedDevices() {
+        return ResponseEntity.ok(deviceService.getBlockedDevices());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/blocked/{id}")
+    public ResponseEntity<Void> unblockDevice(@PathVariable @Positive Long id) {
+        deviceService.unblockDevice(id);
         return ResponseEntity.noContent().build();
     }
 

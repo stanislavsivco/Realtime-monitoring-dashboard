@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import os
 import time
 import socket
@@ -5,6 +7,11 @@ import platform
 import uuid
 import psutil
 import requests
+
+try:
+    import machineid
+except ImportError:
+    machineid = None
 
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://localhost:8080/api/devices")
 INTERVAL_SECONDS = int(os.environ.get("INTERVAL_SECONDS", "5"))
@@ -16,6 +23,8 @@ if not AGENT_API_KEY:
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEVICE_ID_FILE = os.path.join(AGENT_DIR, ".device_id")
 MACHINE_ID_FILE = os.path.join(AGENT_DIR, ".machine_id")
+MACHINE_ID_APP = "realtime-monitoring-dashboard"
+RETRYABLE_CLIENT_ERRORS = (408, 429)
 
 _last_net_io = None
 _last_net_time = None
@@ -36,13 +45,24 @@ def get_machine_id():
     return machine_id
 
 
+def get_machine_hash():
+    try:
+        if machineid is None:
+            raise RuntimeError("py-machineid is not installed")
+        return machineid.hashed_id(MACHINE_ID_APP)
+    except Exception as e:
+        print(f"[Machine ID] OS machine ID is not available ({e}). Using {MACHINE_ID_FILE} instead.")
+        return hmac.new(get_machine_id().encode(), MACHINE_ID_APP.encode(), hashlib.sha256).hexdigest()
+
+
 def register_device():
     device_name = f"{get_hostname()}-{get_machine_id()[:8]}"
 
     payload = {
         "hostname": device_name,
         "type": platform.system(),
-        "location": "Unknown"
+        "location": "Unknown",
+        "machineId": get_machine_hash()
     }
 
     response = requests.post(
@@ -91,6 +111,15 @@ def load_or_register_device_id():
     while True:
         try:
             return register_device()
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else None
+            if status == 403:
+                raise SystemExit("[Blocked] An administrator deleted this device. "
+                                 "Ask an admin to unblock it, then start the agent again.")
+            if status is not None and 400 <= status < 500 and status not in RETRYABLE_CLIENT_ERRORS:
+                raise SystemExit(f"[Registration rejected] Backend returned {status}: {e.response.text}")
+            print(f"[Registration failed] {e}. Retrying in 5s...")
+            time.sleep(5)
         except requests.exceptions.RequestException as e:
             print(f"[Registration failed] {e}. Retrying in 5s...")
             time.sleep(5)

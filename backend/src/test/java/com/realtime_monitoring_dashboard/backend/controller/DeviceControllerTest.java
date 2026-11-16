@@ -2,6 +2,7 @@ package com.realtime_monitoring_dashboard.backend.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -27,9 +29,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import com.realtime_monitoring_dashboard.backend.dto.BlockedDeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
 import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
+import com.realtime_monitoring_dashboard.backend.exception.DeviceBlockedException;
 import com.realtime_monitoring_dashboard.backend.exception.DeviceNameAlreadyExistsException;
 import com.realtime_monitoring_dashboard.backend.exception.GlobalExceptionHandler;
 import com.realtime_monitoring_dashboard.backend.exception.ResourceNotFoundException;
@@ -43,6 +47,7 @@ class DeviceControllerTest {
     private static final String VALID_BODY = """
             {"name": "Server-1", "type": "Server", "location": "Kosice"}
             """;
+    private static final String MACHINE_ID = "0123456789abcdef".repeat(4);
 
     @Mock
     private DeviceService deviceService;
@@ -200,8 +205,8 @@ class DeviceControllerTest {
     void registerAgentReturnsDevice() throws Exception {
         when(deviceService.registerAgent(any(RegisterAgentRequestDTO.class))).thenReturn(dto(7L, "agent-01"));
         String body = """
-                {"hostname": "agent-01", "type": "Server", "location": "DC1"}
-                """;
+                {"hostname": "agent-01", "type": "Server", "location": "DC1", "machineId": "%s"}
+                """.formatted(MACHINE_ID);
 
         mockMvc.perform(post("/api/devices/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
@@ -213,8 +218,8 @@ class DeviceControllerTest {
     @Test
     void registerAgentWithBlankHostnameReturns400() throws Exception {
         String body = """
-                {"hostname": "  "}
-                """;
+                {"hostname": "  ", "machineId": "%s"}
+                """.formatted(MACHINE_ID);
 
         mockMvc.perform(post("/api/devices/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
@@ -227,11 +232,73 @@ class DeviceControllerTest {
     void registerAgentWithoutTypeOrLocationIsAccepted() throws Exception {
         when(deviceService.registerAgent(any(RegisterAgentRequestDTO.class))).thenReturn(dto(8L, "bare-agent"));
         String body = """
-                {"hostname": "bare-agent"}
-                """;
+                {"hostname": "bare-agent", "machineId": "%s"}
+                """.formatted(MACHINE_ID);
 
         mockMvc.perform(post("/api/devices/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void registerAgentWithoutMachineIdReturns400() throws Exception {
+        String body = """
+                {"hostname": "old-agent", "type": "Server", "location": "DC1"}
+                """;
+
+        mockMvc.perform(post("/api/devices/register").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.machineId").exists());
+
+        verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void registerAgentOfBlockedDeviceReturns403WithMessage() throws Exception {
+        when(deviceService.registerAgent(any(RegisterAgentRequestDTO.class)))
+                .thenThrow(new DeviceBlockedException("This device was deleted by an administrator"));
+        String body = """
+                {"hostname": "agent-01", "machineId": "%s"}
+                """.formatted(MACHINE_ID);
+
+        mockMvc.perform(post("/api/devices/register").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("This device was deleted by an administrator"));
+    }
+
+    @Test
+    void getBlockedDevicesReturnsJsonArray() throws Exception {
+        when(deviceService.getBlockedDevices()).thenReturn(List.of(
+                BlockedDeviceDTO.builder().id(4L).deviceName("lab-pc-1a2b3c4d")
+                        .blockedAt(Instant.parse("2026-11-16T10:15:30Z")).build()));
+
+        mockMvc.perform(get("/api/devices/blocked"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(4))
+                .andExpect(jsonPath("$[0].deviceName").value("lab-pc-1a2b3c4d"))
+                .andExpect(jsonPath("$[0].blockedAt").value("2026-11-16T10:15:30Z"))
+                .andExpect(jsonPath("$[0].machineIdHash").doesNotExist());
+
+        verify(deviceService, never()).getDeviceById(any(Long.class));
+    }
+
+    @Test
+    void unblockDeviceReturns204() throws Exception {
+        mockMvc.perform(delete("/api/devices/blocked/4"))
+                .andExpect(status().isNoContent());
+
+        verify(deviceService).unblockDevice(4L);
+        verify(deviceService, never()).deleteDevice(any(Long.class));
+    }
+
+    @Test
+    void unblockDeviceReturns404WhenMissing() throws Exception {
+        doThrow(new ResourceNotFoundException("Blocked device with ID 99 does not exist"))
+                .when(deviceService).unblockDevice(99L);
+
+        mockMvc.perform(delete("/api/devices/blocked/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Blocked device with ID 99 does not exist"));
     }
 
     @Test

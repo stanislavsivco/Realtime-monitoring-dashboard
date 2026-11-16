@@ -18,7 +18,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.realtime_monitoring_dashboard.backend.dto.CreateDeviceRequestDTO;
+import com.realtime_monitoring_dashboard.backend.dto.DeviceDTO;
 import com.realtime_monitoring_dashboard.backend.dto.RegisterAgentRequestDTO;
+import com.realtime_monitoring_dashboard.backend.exception.DeviceBlockedException;
 import com.realtime_monitoring_dashboard.backend.exception.DeviceNameAlreadyExistsException;
 import com.realtime_monitoring_dashboard.backend.model.Alert;
 import com.realtime_monitoring_dashboard.backend.model.AlertSeverity;
@@ -27,6 +29,7 @@ import com.realtime_monitoring_dashboard.backend.model.DeviceStatus;
 import com.realtime_monitoring_dashboard.backend.model.Metric;
 import com.realtime_monitoring_dashboard.backend.model.Threshold;
 import com.realtime_monitoring_dashboard.backend.repository.AlertRepository;
+import com.realtime_monitoring_dashboard.backend.repository.BlockedDeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.DeviceRepository;
 import com.realtime_monitoring_dashboard.backend.repository.MetricRepository;
 import com.realtime_monitoring_dashboard.backend.repository.ThresholdRepository;
@@ -36,6 +39,9 @@ import com.realtime_monitoring_dashboard.backend.support.PostgresTestDatabase;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(DeviceService.class)
 class DeviceServiceIntegrationTest {
+
+    private static final String MACHINE_ID = "0123456789abcdef".repeat(4);
+    private static final String OTHER_MACHINE_ID = "fedcba9876543210".repeat(4);
 
     @DynamicPropertySource
     static void postgres(DynamicPropertyRegistry registry) {
@@ -52,6 +58,8 @@ class DeviceServiceIntegrationTest {
     private AlertRepository alertRepository;
     @Autowired
     private ThresholdRepository thresholdRepository;
+    @Autowired
+    private BlockedDeviceRepository blockedDeviceRepository;
 
     @Autowired
     private TestEntityManager entityManager;
@@ -124,10 +132,96 @@ class DeviceServiceIntegrationTest {
 
     @Test
     void registerAgentTwiceReturnsSameDevice() {
-        Long first = deviceService.registerAgent(new RegisterAgentRequestDTO("agent-host", null, null)).getId();
-        Long second = deviceService.registerAgent(new RegisterAgentRequestDTO("agent-host", null, null)).getId();
+        Long first = deviceService.registerAgent(agent("agent-host", MACHINE_ID)).getId();
+        Long second = deviceService.registerAgent(agent("agent-host", MACHINE_ID)).getId();
 
         assertThat(second).isEqualTo(first);
         assertThat(deviceRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void deletedAgentDeviceStaysDeletedUntilAdminUnblocksIt() {
+        Long id = deviceService.registerAgent(agent("agent-host", MACHINE_ID)).getId();
+
+        deviceService.deleteDevice(id);
+
+        assertThrows(DeviceBlockedException.class, () -> deviceService.registerAgent(agent("agent-host", MACHINE_ID)));
+        assertThrows(DeviceBlockedException.class, () -> deviceService.registerAgent(agent("new-name", MACHINE_ID)));
+        assertThat(deviceRepository.findAll()).isEmpty();
+        assertThat(deviceService.getBlockedDevices()).singleElement()
+                .satisfies(blocked -> assertThat(blocked.getDeviceName()).isEqualTo("agent-host"));
+
+        deviceService.unblockDevice(deviceService.getBlockedDevices().get(0).getId());
+        Long again = deviceService.registerAgent(agent("agent-host", MACHINE_ID)).getId();
+
+        assertThat(again).isNotEqualTo(id);
+        assertThat(blockedDeviceRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void blockingOneMachineDoesNotAffectOthers() {
+        Long blocked = deviceService.registerAgent(agent("blocked-host", MACHINE_ID)).getId();
+        deviceService.registerAgent(agent("other-host", OTHER_MACHINE_ID));
+
+        deviceService.deleteDevice(blocked);
+
+        assertThat(deviceService.registerAgent(agent("other-host", OTHER_MACHINE_ID)).getName()).isEqualTo("other-host");
+    }
+
+    @Test
+    void deletingDeviceWithoutMachineIdBlocksNothing() {
+        Device manual = deviceWithMetricAlertAndThreshold("manual-device");
+
+        deviceService.deleteDevice(manual.getId());
+
+        assertThat(blockedDeviceRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void agentDeviceRenamedByAdminIsFoundByMachineIdInsteadOfDuplicated() {
+        Long id = deviceService.registerAgent(agent("agent-host", MACHINE_ID)).getId();
+        deviceService.updateDevice(id, new CreateDeviceRequestDTO("Reception PC", "Windows", "Kosice"));
+
+        DeviceDTO again = deviceService.registerAgent(agent("agent-host", MACHINE_ID));
+
+        assertThat(again.getId()).isEqualTo(id);
+        assertThat(again.getName()).isEqualTo("Reception PC");
+        assertThat(deviceRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void deviceRegisteredBeforeMachineIdsExistedIsAdoptedByName() {
+        Device legacy = deviceRepository.saveAndFlush(Device.builder()
+                .name("legacy-host").type("Windows").location("Unknown").status(DeviceStatus.ONLINE)
+                .simulated(false).build());
+
+        Long id = deviceService.registerAgent(agent("legacy-host", MACHINE_ID)).getId();
+
+        assertThat(id).isEqualTo(legacy.getId());
+        assertThat(deviceRepository.findByMachineIdHash(MACHINE_ID)).get()
+                .extracting(Device::getId).isEqualTo(legacy.getId());
+        assertThat(deviceRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void agentCannotTakeOverNameOfAnotherMachine() {
+        deviceService.registerAgent(agent("shared-name", MACHINE_ID));
+
+        assertThrows(DeviceNameAlreadyExistsException.class,
+                () -> deviceService.registerAgent(agent("shared-name", OTHER_MACHINE_ID)));
+        assertThat(deviceRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void databaseRejectsTwoDevicesWithSameMachineId() {
+        deviceRepository.saveAndFlush(Device.builder()
+                .name("first").status(DeviceStatus.ONLINE).machineIdHash(MACHINE_ID).build());
+
+        assertThrows(DataIntegrityViolationException.class, () -> deviceRepository.saveAndFlush(Device.builder()
+                .name("second").status(DeviceStatus.ONLINE).machineIdHash(MACHINE_ID).build()));
+    }
+
+    private static RegisterAgentRequestDTO agent(String hostname, String machineId) {
+        return new RegisterAgentRequestDTO(hostname, null, null, machineId);
     }
 }

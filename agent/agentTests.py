@@ -14,6 +14,7 @@ AGENT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent.py"
 KEY = "test-agent-key-0123456789abcdef0123456789"
 BASE = "http://backend.test/api/devices"
 REGISTER, INGEST = f"{BASE}/register", f"{BASE}/ingest"
+MACHINE_HASH = "0123456789abcdef" * 4
 METRICS = {"cpu": 12.5, "ram": 40.0, "disk": 55.0, "latencyMs": 20.0, "networkInMbps": 1.0, "networkOutMbps": 2.0}
 
 
@@ -70,6 +71,7 @@ class AgentTestCase(unittest.TestCase):
         self.agent = load_agent()
         self.agent.DEVICE_ID_FILE = os.path.join(self.tmp, ".device_id")
         self.agent.MACHINE_ID_FILE = os.path.join(self.tmp, ".machine_id")
+        self.agent.machineid = types.SimpleNamespace(hashed_id=mock.Mock(return_value=MACHINE_HASH))
 
     def write_id(self, content):
         with open(self.agent.DEVICE_ID_FILE, "wb" if isinstance(content, bytes) else "w") as f:
@@ -122,6 +124,7 @@ class RegistrationTest(AgentTestCase):
 
         call = backend.sent(REGISTER)[0]
         self.assertEqual(call["json"]["hostname"], "lab-pc-abcdef12")
+        self.assertEqual(call["json"]["machineId"], MACHINE_HASH)
         self.assertEqual(call["headers"]["X-Agent-Key"], KEY)
         self.assertEqual(call["timeout"], 10)
         self.assertEqual(self.read_id(), "17")
@@ -134,6 +137,29 @@ class RegistrationTest(AgentTestCase):
     def test_machine_id_is_created_once_and_reused(self):
         first = self.agent.get_machine_id()
         self.assertEqual(first, self.agent.get_machine_id())
+
+
+class MachineHashTest(AgentTestCase):
+    def machine_hash(self):
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            return self.agent.get_machine_hash(), out.getvalue()
+
+    def test_uses_hashed_os_machine_id_with_app_name(self):
+        self.assertEqual(self.machine_hash()[0], MACHINE_HASH)
+        self.agent.machineid.hashed_id.assert_called_once_with("realtime-monitoring-dashboard")
+        self.assertFalse(os.path.exists(self.agent.MACHINE_ID_FILE))
+
+    def test_falls_back_to_hashed_local_id_when_os_id_is_unavailable(self):
+        failing = types.SimpleNamespace(hashed_id=mock.Mock(side_effect=RuntimeError("no machine id")))
+        for library in (None, failing):
+            with self.subTest(library=library):
+                self.agent.machineid = library
+                first, out = self.machine_hash()
+                second, _ = self.machine_hash()
+
+                self.assertRegex(first, r"^[0-9a-f]{64}$")
+                self.assertEqual(first, second)
+                self.assertIn("[Machine ID]", out)
 
 
 class DeviceIdCacheTest(AgentTestCase):
@@ -163,6 +189,29 @@ class DeviceIdCacheTest(AgentTestCase):
         device_id, sleep = self.load(backend)
         self.assertEqual(device_id, 8)
         self.assertEqual(sleep.call_args_list, [mock.call(5), mock.call(5)])
+
+    def test_temporary_client_errors_are_retried(self):
+        backend = Backend(register=[Resp(408), Resp(429), Resp(200, {"id": 8})])
+        device_id, sleep = self.load(backend)
+        self.assertEqual(device_id, 8)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_blocked_device_stops_the_agent_without_retrying(self):
+        backend = Backend(register=[Resp(403)])
+        with self.assertRaises(SystemExit) as stopped:
+            self.load(backend)
+        self.assertIn("[Blocked]", str(stopped.exception.code))
+        self.assertEqual(len(backend.sent(REGISTER)), 1)
+        self.assertFalse(os.path.exists(self.agent.DEVICE_ID_FILE))
+
+    def test_permanent_client_errors_stop_the_agent_without_retrying(self):
+        for status in (400, 401, 409):
+            with self.subTest(status=status):
+                backend = Backend(register=[Resp(status)])
+                with self.assertRaises(SystemExit) as stopped:
+                    self.load(backend)
+                self.assertIn(str(status), str(stopped.exception.code))
+                self.assertEqual(len(backend.sent(REGISTER)), 1)
 
 
 class MetricsTest(AgentTestCase):
@@ -264,6 +313,20 @@ class MainLoopTest(AgentTestCase):
                           register=[requests.exceptions.ConnectionError(), Resp(200, {"id": 9})])
         self.run_loop(backend, sleeps=3)
         self.assertEqual(backend.ids(), [5, 9])
+
+    def test_stops_when_deleted_device_is_blocked(self):
+        self.write_id("5")
+        backend = Backend(ingest=[Resp(404)], register=[Resp(403)])
+        with contextlib.redirect_stdout(io.StringIO()), \
+                mock.patch.object(self.agent.requests, "post", side_effect=backend.post), \
+                mock.patch.object(self.agent.time, "sleep") as sleep, \
+                mock.patch.object(self.agent, "collect_metrics", side_effect=lambda device_id: {"deviceId": device_id, **METRICS}):
+            with self.assertRaises(SystemExit):
+                self.agent.main()
+        self.assertEqual(backend.ids(), [5])
+        self.assertEqual(len(backend.sent(REGISTER)), 1)
+        self.assertFalse(os.path.exists(self.agent.DEVICE_ID_FILE))
+        sleep.assert_not_called()
 
 
 if __name__ == "__main__":
