@@ -11,7 +11,7 @@ export function getErrorMessage(err: HttpErrorResponse): string {
         return 'Your session has expired. Sign in again';
     }
     if (err.status === 403) {
-        return 'Your do not have permission to do this.'
+        return 'Your do not have permission to do this.';
     }
     if (err.status === 404) {
         return 'The item was not found. It may have been deleted.';

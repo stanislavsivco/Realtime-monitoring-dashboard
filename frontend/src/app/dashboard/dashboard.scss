@@ -276,6 +276,12 @@ button {
     text-align: center;
 }
 
+.dashboard-error {
+    font-size: 0.8rem;
+    color: var(--crit);
+    padding: 0 12px 12px;
+}
+
 .kbd-hint {
     display: flex;
     color: var(--text-faint);

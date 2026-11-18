@@ -49,6 +49,10 @@
                 </button>
             </div>
 
+            @if (devicesError() !== '') {
+            <div class="dashboard-error">{{ devicesError() }}</div>
+            }
+
             <div class="device-list">
                 @for (device of visibleDevices(); track device.id) {
                 <button class="device-row" type="button" (click)="selectDevice(device.id)"
@@ -73,7 +77,7 @@
                     </div>
                 </button>
                 }
-                @if (visibleDevices().length === 0) {
+                @if (visibleDevices().length === 0 && devicesError() === '') {
                 <div class="device-list-empty">No devices in this category</div>
                 }
             </div>
@@ -121,6 +125,10 @@
                     Live data &middot; 14:32
                 </div>
             </div>
+
+            @if (metricError() !== '') {
+            <div class="dashboard-error">{{ metricError() }}</div>
+            }
 
             <div class="tab-panel">
                 <div class="content-grid">

@@ -3,6 +3,7 @@ import { Subscription, interval } from 'rxjs';
 import { MetricService, MetricDTO } from '../services/metric.service';
 import { WebsocketService } from '../services/websocket.service';
 import { DeviceService, DeviceDTO } from '../services/device.service';
+import { getErrorMessage } from '../services/error-message';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,6 +21,8 @@ export class Dashboard implements OnInit, OnDestroy {
   selectedCategory = signal<string>('computers');
   selectedDeviceId = signal<number | null>(null);
   devices = signal<DeviceDTO[]>([]);
+  devicesError = signal<string>('');
+  metricError = signal<string>('');
   private metricsSubscription?: Subscription;
   private devicesSubscription?: Subscription;
   private deletedDevicesSubscription?: Subscription;
@@ -52,10 +55,11 @@ export class Dashboard implements OnInit, OnDestroy {
     this.deviceService.getDevices().subscribe({
       next: (deviceList) => {
         this.devices.set(deviceList);
+        this.devicesError.set('');
         this.selectCategory('computers');
       },
       error: (err) => {
-        console.error('Couldnt load the devices', err);
+        this.devicesError.set(getErrorMessage(err));
       }
     });
 
@@ -143,7 +147,13 @@ export class Dashboard implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Couldnt load the metric', err);
+        if (this.selectedDeviceId() === deviceId) {
+          if (err.status === 404) {
+            this.metricError.set('No metrics from this device yet.');
+          } else {
+            this.metricError.set(getErrorMessage(err));
+          }
+        }
       }
     });
   }
@@ -155,6 +165,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.cpuUsage.set(null);
     this.networkInUsage.set(null);
     this.networkOutUsage.set(null);
+    this.metricError.set('');
   }
 
   private applyMetric(metric: MetricDTO): void {
@@ -164,6 +175,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.cpuUsage.set(metric.cpu);
     this.networkInUsage.set(metric.networkInMbps);
     this.networkOutUsage.set(metric.networkOutMbps);
+    this.metricError.set('');
   }
 
   private updateDevice(device: DeviceDTO): void {
@@ -201,10 +213,11 @@ export class Dashboard implements OnInit, OnDestroy {
     this.deviceService.getDevices().subscribe({
       next: (deviceList) => {
         this.devices.set(deviceList);
+        this.devicesError.set('');
         this.checkSelection();
       },
       error: (err) => {
-        console.error('Couldnt reload the devices', err);
+        this.devicesError.set(getErrorMessage(err));
       }
     });
   }
