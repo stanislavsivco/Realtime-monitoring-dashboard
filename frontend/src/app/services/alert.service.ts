@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface AlertDTO {
     id: number;
@@ -24,7 +25,7 @@ export interface AlertPage {
     providedIn: 'root'
 })
 export class AlertService {
-    private readonly baseUrl = 'http://localhost:8080/api/alerts';
+    private readonly baseUrl = `${environment.apiUrl}/api/alerts`;
 
     constructor(private http: HttpClient) { }
 

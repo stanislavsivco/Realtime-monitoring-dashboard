@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface MetricDTO {
     id: number;
@@ -18,7 +19,7 @@ export interface MetricDTO {
     providedIn: 'root'
 })
 export class MetricService {
-    private readonly baseUrl = 'http://localhost:8080/api/devices';
+    private readonly baseUrl = `${environment.apiUrl}/api/devices`;
 
     constructor(private http: HttpClient) { }
 

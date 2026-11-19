@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface DeviceDTO {
     id: number;
@@ -21,7 +22,7 @@ export interface DeviceInput {
     providedIn: 'root'
 })
 export class DeviceService {
-    private readonly baseUrl = 'http://localhost:8080/api/devices';
+    private readonly baseUrl = `${environment.apiUrl}/api/devices`;
 
     constructor(private http: HttpClient) { }
 

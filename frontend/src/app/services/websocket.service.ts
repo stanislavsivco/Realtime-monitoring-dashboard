@@ -4,6 +4,7 @@ import { Subject } from 'rxjs';
 import { MetricDTO } from './metric.service';
 import { DeviceDTO } from './device.service';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -19,7 +20,7 @@ export class WebsocketService {
 
   constructor(private authService: AuthService) {
     this.client = new Client({
-      brokerURL: 'ws://localhost:8080/ws/websocket',
+      brokerURL: environment.wsUrl,
       beforeConnect: (client) => {
         const token = this.authService.getToken();
         client.connectHeaders = token === null ? {} : { Authorization: `Bearer ${token}` };
